@@ -1,0 +1,62 @@
+<html>
+<head>
+  <script src='https://cdn.plot.ly/plotly-2.4.2.min.js'></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+</head>
+
+<body>
+  <div id='myDiv'><!-- Plotly chart will be drawn inside this DIV --></div>
+  <div id="app">
+    {{ message }}
+  </div>
+
+</body>
+<script>
+var trace1 = {
+  x: [1, 2, 3, 4],
+  y: [10, 15, 13, 17],
+  type: 'scatter'
+};
+
+var trace2 = {
+  x: [1, 2, 3, 4],
+  y: [16, 5, 11, 9],
+  type: 'scatter'
+};
+
+var data = [trace1, trace2];
+
+Plotly.newPlot('myDiv', data);
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    message: 'Hello Vue!'
+  },
+  methods:{
+    updateList() {
+      fetch("https://api.notion.com/v1/databases/f21fa4cd1d80410c927e189f6bb60160/query",{
+        method: 'POST',
+        headers: {
+          'Authorization': 'secret_chvTMf50sQgbj6YnixDrbrvpMdJddTfH5hWMarjRA78',
+          'Notion-Version': '2021-08-16',
+          'Access-Control-Allow-Origin': '*',
+        },
+      }).then(function(response) {
+        return response.json();
+      })
+      .then(function(myJson) {
+        console.log(myJson);
+      });
+    },
+  },
+
+})
+app.updateList()
+
+
+
+
+
+</script>
+</html>

@@ -1,0 +1,358 @@
+#dagEditer #description_textarea {
+	width: -moz-available;
+	width: -webkit-fill-available;
+	resize: vertical;
+	height: 50px;
+	min-height: 50px;
+}
+
+#dagEditer .BigBlockTitle {
+	background-color: #FF00FF;
+}
+
+#dagEditer .input_area_label {
+	width: 160px;
+	display: inline-block;
+	padding-right: 0.2em;
+}
+
+#dagEditer .input_area {
+	margin : 5px;
+}
+
+#dagEditer .dag_item {
+	margin : 5px;
+	padding : 5px;
+	border : 5px #a7aeae solid;
+	display: inline-block;
+	border-radius: 5px;
+	user-select: none; 
+}
+
+#dagEditer #right_window {
+	position: fixed;
+	top: 5px;
+	right: 5px;
+	width: 0%;
+	height : 100%;
+}
+
+#dagEditer #left_window {
+	/* width: calc( 100% - 20px); */
+	/* height : 100%; */
+}
+
+#dagEditer .preview_textarea {
+	width: -moz-available;
+	width: -webkit-fill-available;
+	resize: vertical;
+	min-height: 50px;
+	height: 80vh;
+	overflow: auto;
+}
+
+#dagEditer .SwitchButtom_Main{
+	width: fit-content;
+}
+
+#dagEditer .SwitchButtom_OutSide {
+	position: relative;
+	top: 0px;
+	margin: 0px;
+	padding: 0px;
+	background-color: #a7aeae;
+	border-radius: 36px;
+	overflow: hidden;
+	height: 36px;
+	min-width: 80px;
+	border: 0.05em outset #2d5653;
+}
+
+#dagEditer .SwitchButtom_Table {
+	margin: 0px;
+	padding: 0px;
+	background-color: #dfe4e5;
+	border-radius: 36px;
+	height: 36px;
+	top: 5px;
+	position: absolute;
+	min-width: 80px;
+	/* box-shadow:-3px -3px; */
+}
+
+#dagEditer .SwitchButtom_ButtomBody {
+	position: relative;
+	border-radius: 30px;
+	height: 36px;
+	width: 33px;
+	background-color: #a7c957;
+	top: 1.5px;
+	left: 1.5px;
+	transition: all 0.5s;
+	transition-timing-function: ease-in-out;
+	border: 0.03em inset #386641;
+}
+
+#dagEditer .SwitchButtom_Buttom_face {
+	position: relative;
+	height: 32px;
+	width: 32px;
+	border-radius: 33px;
+	top: 0px;
+	left: 0px;
+	text-align:center;
+	line-height:30px;
+	transition: all 0.5s;
+	transition-timing-function: ease-in-out;
+	font-family: sans-serif;
+	font-weight: 900;
+	font-size: x-small;
+	color: #fcfffe;
+}
+
+#dagEditer .Buttom_On_Left {
+	left: 1.5px;
+}
+
+#dagEditer .Buttom_Off_Left {
+	left: 44px;
+}
+
+#dagEditer .Buttom_Off_Color{
+	background-color: #d54049;
+	border: 0.5px solid #f25947;
+}
+
+#dagEditer .Buttom_On_Color{
+	background-color: #8ede5c;
+	border: 0.5px solid #a0f24b;
+}
+
+#dagEditer .numberChoseCheckBox {
+	float : left;
+	min-width : 3em;
+	height: 1.2em;
+	margin: 2px;
+	border: 0.5px solid #2d5653;
+	background-color: #a7aeae;
+	border-radius: 2px;
+
+}
+
+#dagEditer .numberChoseCheckBox label {
+    float: left;
+    min-width: 1em;
+    height: 1.2em;
+    line-height: 1.2em;
+    padding-left: 0.2em;
+}
+
+#dagEditer .numberChoseCheckBox input {
+	float : right;
+}
+
+#dagEditer .changeCronATag{
+	margin: 2px;
+	border: 0.5px solid #2d5653;
+	background-color: #a7aeae;
+	border-radius: 2px;
+	padding: 0.25em;
+	display: inline-block;
+	vertical-align: top;
+	width: calc(50% - 16.3px);
+}
+
+#dagEditer .changeCronInput{
+	width: 3em;
+}
+
+#dagEditer .cronChangeWindow{
+	border: 2px solid #ddccdd;
+	border-radius: 2px;
+	padding: 5px;
+	background-color: #dfe4e5;
+	max-width: 20vw;
+}
+
+#dagEditer .cronValueChoseWindow{
+	height: 100px;
+    overflow: auto;
+}
+
+#dagEditer .cron_input_area_switch_button{
+	width: auto;
+	text-align: center;
+	line-height: 1em;
+	font-size: 0.5em;
+	height: 1em;
+	border: 0.5px solid #2d5653;
+	border-radius: 2px;
+	margin-top: 4px;
+	user-select: none; 
+	cursor: pointer; 
+}
+
+#dagEditer .cron_input_area_switch_button:hover {
+	background-color: #979797;
+}
+
+#dagEditer #DesignArea {
+	margin: 15px 5px 0px 0px;
+}
+
+#dagEditer .EmptyDAGSettingWindow {
+	border: 5px #a7aeae;
+	border-style: dashed;
+	text-align: center;
+	line-height: 200px;
+	color: #979797;
+	user-select: none; 
+}
+
+#dagEditer .AliceblueWindow{
+	background-color: aliceblue;
+}
+
+#dagEditer .ToolBox{
+	margin: 15px 5px 0px 0px;
+}
+
+#dagEditer #DargFileArea{
+	z-index: 999;
+}
+
+#dagEditer .uploadedFile{
+	margin: 5px;
+	padding: 5px;
+	border-radius: 10px;
+}
+
+#dagEditer .uploadedFile_label{
+	display : inline-block;
+	/* overflow : hidden; */
+	text-overflow : ellipsis;
+	white-space : nowrap;
+	width: 15em;
+}
+
+#dagEditer .uploadedFile_status{
+	display : inline-block;
+	/* overflow : hidden; */
+	text-overflow : ellipsis;
+	white-space : nowrap;
+	width: 15em;
+}
+
+#dagEditer .preViewDatetime_window{
+	margin: 2px;
+	border: 0.5px solid #2d5653;
+	background-color: #a7aeae;
+	border-radius: 2px;
+	padding: 0.25em;
+}
+
+#dagEditer .preViewDatetime_list{
+	max-height: 150px;
+	overflow: auto;
+}
+
+#dagEditer .preViewDatetime_item{
+	margin: 2px;
+	border: 0.5px solid #2d5653;
+	background-color: #f0f0f0;
+	border-radius: 4px;
+	padding: 0.25em;
+}
+
+#dagEditer #totalUploadButton {
+	width: 100%;
+	font-size: 1em;
+	padding: 1em;
+}
+
+#dagEditer .ScheduleSettingMainWindow{
+	display: grid;
+	grid-template-columns: 10% 90%;
+	min-height: 20vh;
+	border: 1px solid;
+	border-radius: 3px;
+	margin: 5px 0px 5px 0px;
+}
+
+#dagEditer .cheduleSettingTypeChoseWindow {
+	background-color: #d0d0d0;
+}
+
+#dagEditer .ScheduleSettingWindow {
+	margin: 5px;
+    background-color: #d0d0d0;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+#dagEditer .cornSettingWindow {
+	height: 100%;
+	
+}
+
+#dagEditer .SetTagsView {
+	background-color: #ffffff;
+	height: 200px;
+	overflow: auto;
+	border-radius: 5px;
+	border: 2px solid;
+}
+
+/* #dagEditer .TagItem { */
+	/* border-radius: 5px; */
+	/* border: 2px solid #dddddd; */
+	/* background-color: #aaaaaa; */
+	/* width: fit-content; */
+	/* padding: 3px; */
+	/* margin: 3px; */
+	/* float: left; */
+/* } */
+
+#dagEditer .Anima360in2secDiv {
+    animation-name:Anima360in2sec;
+    animation-duration:2s;
+	animation-timing-function: linear;
+	animation-iteration-count:infinite;
+	pointer-events: none;
+}
+
+@keyframes Anima360in2sec{
+    from{
+        transform:rotate(0deg);
+    }
+    to{
+        transform:rotate(360deg);
+    }
+}
+
+/* 文字水平置中 */
+#dagEditer .text-h-center {
+  text-align: center;
+}
+
+/* 文字垂直置中 */
+#dagEditer .text-v-center {
+  vertical-align: top;
+}
+#dagEditer .text-v-center:before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 100%;
+  vertical-align: middle;
+}
+#dagEditer .text-v-center p {
+  display: inline-block;
+}
+
+#vueLoadingWindow {
+	width: 100vw;
+	height: 100vh;
+	background-color: #f1f1f1;
+	z-index: 9999;
+}

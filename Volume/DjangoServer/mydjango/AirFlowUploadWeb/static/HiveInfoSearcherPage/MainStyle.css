@@ -1,0 +1,121 @@
+#hive-searcher {
+    background-color: #f5f7fa;
+    padding: 4rem;
+}
+
+#hive-searcher .search-bar {
+    display: flex;
+    border-radius: .5rem;
+    border: 2px #e3e4e5 solid;
+    overflow: hidden;
+}
+
+#hive-searcher .search-bar * {
+    font-size: 2rem;
+    height: 2rem;
+    line-height: 2rem;
+    padding: .5rem;
+}
+
+#hive-searcher .search-bar input {
+    width: 85vw;
+    outline:none;
+    border: 0;
+}
+
+#hive-searcher .search-bar i {
+    border-left: 2px #e3e4e5 solid;
+}
+
+#hive-searcher .btn-base {
+    cursor: pointer; 
+    display: inline-block;
+    font-weight: 400;
+    color: #212529;
+    text-align: center;
+    vertical-align: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: .25rem;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+#hive-table-view {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+#hive-table-view thead{
+    background-color: #e7e6e6;
+}
+
+#hive-table-view thead th{
+    background-color: #e7e6e6;
+    padding: 1rem .75rem;
+    border: 2px #d1d0d0 solid;
+    border-bottom: 2px #d1d0d0 solid;
+}
+
+#hive-table-view tbody td{
+    padding: .4rem .75rem;
+    border: 1px #d1d0d0 solid;
+}
+
+#hive-table-header {
+    padding: .4rem .75rem;
+    border: 2px #d1d0d0 solid;
+    border-bottom: 0px;
+    background-color: #e7e6e6;
+    display: flex;
+    justify-content: space-between;
+}
+
+#hive-searcher .page-choser {
+    display: flex;
+    border-radius: .35rem;
+    overflow: hidden;
+    border: 1px #d1d0d0 solid;
+}
+
+#hive-searcher .page-chose-btn {
+    margin: 0.5px;
+    cursor: pointer; 
+    display: inline-block;
+    font-weight: 400;
+    color: #007bff;
+    background-color: #fff;
+    text-align: center;
+    vertical-align: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+#hive-searcher .page-chose-btn:hover,
+#hive-searcher .page-chose-btn-chosed{
+    color: #0056b3 ;
+    text-decoration: none ;
+    background-color: #8fc7ff ;
+    border-color: #dee2e6 ;
+}
+
+#hive-searcher .page-chose-btn-noactive {
+    color: #dee2e6 !important;
+    text-decoration: none !important;
+    background-color: #e9ecef !important;
+    border-color: #dee2e6 !important;
+}
+
+#hive-searcher 

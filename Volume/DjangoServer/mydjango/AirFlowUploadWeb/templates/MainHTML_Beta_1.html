@@ -1,0 +1,1934 @@
+ <!-- {% verbatim %} -->
+ <!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Air Flow DAG File Builder</title>
+	<!-- 導入Vue -->
+	<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+	<script src="/static/AirFlowUploadWeb/DateFormat.js"></script>
+	<link rel="stylesheet" href="/static/AirFlowUploadWeb/mystyle.css">
+	<!-- <link rel="stylesheet" href="/static/AirFlowUploadWeb/dagEditer.css">
+	<link rel="stylesheet" href="/static/AirFlowUploadWeb/dagListViewer.css"> -->
+	<link rel="stylesheet" href="/static/AirFlowUploadWeb/fontawesome-free-5.15.4-web/css/all.css">
+	<link href="/static/AirFlowUploadWeb/fontawesome-free-5.15.4-web/css/fontawesome.css" rel="stylesheet">
+	<link href="/static/AirFlowUploadWeb/fontawesome-free-5.15.4-web/css/brands.css" rel="stylesheet">
+	<link href="/static/AirFlowUploadWeb/fontawesome-free-5.15.4-web/css/solid.css" rel="stylesheet">
+
+	<link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+  />
+
+	<!-- Noto Sans TC -->
+	<!-- https://fonts.google.com/specimen/Noto+Sans+TC?preview.text_type=custom&preview.text=Almost%20before%20we%20knew%20it,%20we%20had%20left%20the%20ground.%E5%AE%89%E5%AE%89#license -->
+	<!-- font-family: 'Roboto', sans-serif; -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"> 
+
+
+	<!-- https://openbase.com/js/vue-prism-editor -->
+	<!-- Prism Editor -->
+	<script src="https://unpkg.com/vue-prism-editor"></script>
+	<link rel="stylesheet" href="https://unpkg.com/vue-prism-editor/dist/prismeditor.min.css" />
+
+	<!-- custom highlighter: -->
+	<script src="https://unpkg.com/prismjs/prism.js"></script>
+	<script src="https://unpkg.com/prismjs@1.24.1/components/prism-python.min.js"></script>
+	<link rel="stylesheet" href="https://unpkg.com/prismjs/themes/prism-tomorrow.css" />
+
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+	<style>
+	  .height-200{
+		height: 200px  
+	  }
+	  
+	  .my-editor {
+		/* we dont use `language-` classes anymore so thats why we need to add background and text color manually */
+		background: #2d2d2d;
+		color: #ccc;
+
+		/* you must provide font-family font-size line-height. Example:*/
+		font-family: Fira code, Fira Mono, Consolas, Menlo, Courier, monospace;
+		font-size: 14px;
+		line-height: 1.5;
+		padding: 5px;
+	  }
+
+	  /* optional class for removing the outline */
+	  .prism-editor__textarea:focus {
+		outline: none;
+	  }
+	</style>
+
+</head>
+<body>
+	<div id="app">
+		<!-- Vue讀取成功前的畫面 -->
+		<div id='vueBeforeLoadingWindow' class='text-h-center text-v-center' v-if="false">
+			<h1 class="ml6">
+				<span class="text-wrapper">
+					<span class="letters">Loading...</span>
+				</span>
+			</h1>
+		</div>
+		<!-- Vue讀取成功畫面 -->
+		<transition name="delay-display-out">
+			<div id='vueLoadingWindow' class='text-h-center text-v-center' v-if="loadingVue">
+				<h1 class="ml9" class="animate__animated animate__fadeIn">
+					<span class="text-wrapper">
+						<span class="letters">自   主   排   程   系   統</span>
+					</span>
+				</h1>
+
+				<h1 class="ml11" v-show="loadingVue">
+					<span class="text-wrapper">
+					<span class="line line1"></span>
+					<span class="letters">{{WelcomeWord}}</span>
+					</span>
+				</h1>
+
+				<h1 class="ml9" class="animate__animated animate__fadeIn">
+					<span class="text-wrapper">
+						<span class="letters">Version: beta v1.0</span>
+					</span>
+				</h1>
+			</div>
+		</transition>
+		<!-- DAG執行與否開關確認視窗 -->
+		<transition name="delay-display-none">
+			<div class='top-window-alert-background animate__animated' :class="DAGPausedSwitchWindowOpen?'animate__fadeIn':'animate__fadeOut'"  v-show='DAGPausedSwitchWindowOpen' @click='DAGPausedSwitchWindowOpen=false'>
+				<div>
+					<div class='top-window-alert-window animate__animated' :class="DAGPausedSwitchWindowOpen?'animate__fadeInDown':'animate__fadeOutUp'" @click.stop="">
+						<div class='top-window-alert-header'>
+							<p>確認要{{!DAGPausedSwitchPausedStatus?"打開":"關閉"}}此項目?</p>
+							<i class='fas fa-times' @click='DAGPausedSwitchWindowOpen=false'></i>
+						</div>
+						<div class='top-window-alert-body'>
+							DAG ID:{{DAGPausedSwitchDAGID}}
+						</div>
+						<div class='top-window-alert-footer'>
+							<button class="btn btn-default" @click='DAGPausedSwitchWindowOpen=false'>取消動作</button>
+							<button class="btn btn-primary" @click='uploadDAGPauseStatus(DAGPausedSwitchDAGID, DAGPausedSwitchPausedStatus)'>沒錯 我想要{{!DAGPausedSwitchPausedStatus?"打開":"關閉"}}此項目</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</transition>
+
+		<!-- DAG執行與否強制執行確認視窗 -->
+		<transition name="delay-display-none">
+			<div class='top-window-alert-background animate__animated' :class="DAGTrigetRunWindowOpen?'animate__fadeIn':'animate__fadeOut'"  v-show='DAGTrigetRunWindowOpen' @click='DAGTrigetRunWindowOpen=false'>
+				<div>
+					<div class='top-window-alert-window animate__animated' :class="DAGTrigetRunWindowOpen?'animate__fadeInDown':'animate__fadeOutUp'" @click.stop="">
+						<div class='top-window-alert-header'>
+							<p>確認要手動執行此項目?</p>
+							<i class='fas fa-times' @click='DAGTrigetRunWindowOpen=false'></i>
+						</div>
+						<div class='top-window-alert-body'>
+							DAG ID:{{DAGTrigetRunDAGID}}
+						</div>
+						<div class='top-window-alert-footer'>
+							<button class="btn btn-default" @click='DAGTrigetRunWindowOpen=false'>取消動作</button>
+							<button class="btn btn-primary" @click='trigerDAGByDAGID(DAGTrigetRunDAGID)'>沒錯 我想要馬上執行此項目</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</transition>
+
+		<!-- DAG 列表畫面 -->
+		<div id='dagListViewer' v-show='NowPage=="dagListViewer"'>
+			<div class="table-card">
+				<div class="table-card-header color-g-b">
+					<div style='dispaly: flex;'>
+						<h3 class='table-card-title'>Project: {{projectName}}</h3>
+						<i class='fas fa-3x fa-sync-alt reload-btn btn btn-info' @click="getDAGList()"></i>
+					</div>
+					<button class='btn btn-block btn-default btn-right text-v-center' @click='openAddNewDAGEditer()'>新增排程</button>
+				</div>
+				<div class="table-card-body relative-item">
+					<div class='reloading-window text-v-center text-h-center' v-if='uploadingDAGListWindow'>
+						<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec font-size-3em'></i><label class='font-size-3em'>Loading...</label>
+					</div>
+
+					<div style='border:1px #000 solid;padding: 2rem; margin-bottom: 1rem;'>
+						這邊想加Filter視窗
+					</div>
+
+					<table class="table table-bordered">
+						<colgroup>
+							<col style="width: 1px;">
+							<col style="width: 1px;">
+							<col style="width: 1px;">
+							<col style="width: 1px;">
+							<col style="width: 1px;">
+							<col style="width: 1px;">
+							<col style="width: 1px;">
+							<col>
+						</colgroup>
+						<thead class='table-theader'>
+							<tr style='border-bottom: 2px solid #dee2e6;text-align: center;'>
+								<th><div style="min-width: 4em;">手動執行</div></th>
+								<th><div style="min-width: 5em;">排程開關</div></th>
+								<th><div style="min-width: 5em;">最後執行結果</div></th>
+								<th><div style="min-width: 5em;">排程ID</div></th>
+								<th><div style="min-width: 5em;">Owner</div></th>
+								<th><div style="width: 10em;">Tags</div></th>
+								<th><div style="min-width: 7em;">排程時間</div></th>
+								<th><div>上架時間</div></th>
+							</tr>
+						</thead>
+						<tbody class='table-tbody'>
+							<tr v-for="(item, dagId, index) of DAGList">
+								<!-- 強制執行按鈕 -->
+								<td>
+									<div class='text-h-center' v-if="item.is_paused != undefined & item.is_paused == false">
+										<i class="fas fa-caret-square-right triget-btn-active mouse-pointer"
+											@click="clickTrigerDAGRunButton(dagId)"
+										></i>
+									</div>
+									<div class='text-h-center' v-else>
+										<i class="fas fa-caret-square-right triget-btn-none mouse-pointer"></i>
+									</div>
+								</td>
+
+								<!-- 開關按鈕 -->
+								<td>
+									<div class="switch-btn-ground mouse-pointer" v-if="item.is_paused != undefined">
+										<div 
+											class="switch-btn-item" 
+											:style='item.is_paused?"left:-70%;":"left:0%"'
+											@click.stop="clickDAGPauseStatusSwitch(dagId, !item.is_paused)"
+										>
+											<div class="switch-btn-on text-h-center">
+												ON
+											</div>
+											<div class="switch-btn-btn" style='position: relative;'>
+												<div style='display: flex;width:calc(1.5rem + 4px);height:calc(1.5rem + 4px);'>
+													<div class='flex-50' style='background-color: #83c783;'></div>
+													<div class='flex-50' style='background-color: #dc7a87'></div>
+												</div>
+												<div class='switch-btn-btn-face text-h-center' style='position: absolute;top:0px;left:-1px;'>
+													|||
+												</div>
+											</div>
+											<div class="switch-btn-off text-h-center">
+												OFF
+											</div>
+										</div>
+									</div>
+									<div class="switch-btn-ground mouse-pointer" v-else>
+										<div 
+											class="switch-btn-item" 
+										>
+											<div class="switch-btn-none text-h-center">
+												NONE
+											</div>
+										</div>
+									</div>
+								</td>
+								<!-- Last Run Status -->
+								<td>
+									<div style='display:grid;'>
+										<div class='status-label alert-danger' v-if='item.ImportSuccess==false & item.ImportFailMessage != ""'>
+											<i class="fas fa-exclamation-triangle" style="margin: 0px;"></i>Load error
+											<div class='hover-show-window'>
+												<div class='alert alert-danger'>
+													<h5>
+														<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
+														Warning!!
+													</h5>
+													<div>Airflow 在讀取排程檔案時失敗，請工程組協助排除</div>
+													<div>錯誤資訊:</div>
+													<div style='white-space: initial;'>{{item.ImportFailMessage}}</div>
+												</div>
+											</div>
+										</div>
+										<div class='status-label alert-warning' v-else-if='item.ImportSuccess==false & item.ImportFailMessage == ""'>
+											Loading...
+											<div class='hover-show-window'>
+												<div class='alert alert-warning'>
+													<h5>
+														<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
+														Loading...
+													</h5>
+													Airflow 在讀取排程檔案中，請稍後在試
+												</div>
+											</div>
+										</div>
+
+										<template v-else-if='item.ImportSuccess==true'>
+											<template v-if='item.LastRun != undefined'>
+												<div class='status-label alert-danger' v-if='item.LastRun.Result == "none"'>
+													尚無執行紀錄
+												</div>
+												<div class='status-label alert-success' v-else-if="item.LastRun.Result.state == 'success'">
+													<i class="fas fa-check" style="margin: 0px;"></i>{{item.LastRun.Result.state}}
+												</div>
+												<div class='status-label alert-danger' v-else-if="item.LastRun.Result.state == 'failed'">
+													<i class="fas fa-exclamation-triangle" style="margin: 0px;"></i>{{item.LastRun.Result.state}}
+												</div>
+												<div class='status-label alert-warning' v-else>
+													<i class="fas fa-biking"></i>{{item.LastRun.Result.state}}
+												</div>
+											</template>
+											<div class='status-label alert-waiting' v-else>
+												<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec' style="font-size: 14px !important;padding: 0 .2rem; margin-right: .2rem;"></i>loading...
+											</div>
+										</template>
+
+										<div class='status-label alert-danger' v-if='item.SettingFile==false'>
+											<i class="fas fa-exclamation-triangle" style="margin: 0px;"></i>設定檔遺失
+											<div class='hover-show-window'>
+												<div class='alert alert-danger'>
+													<h5>
+														<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
+														Warning!!
+													</h5>
+													Setting 檔案遺失，請通知工程組重新編輯一份
+												</div>
+											</div>
+										</div>
+										<div class='status-label alert-danger' v-if='item.dagPyFile==false'>
+											<i class="fas fa-exclamation-triangle" style="margin: 0px;"></i>排程檔案遺失
+											<div class='hover-show-window'>
+												<div class='alert alert-danger'>
+													<h5>
+														<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
+														Warning!!
+													</h5>
+													dagPyFile 檔案遺失，請通知工程組重新編輯一份
+												</div>
+											</div>
+										</div>
+
+									</div>
+								</td>
+								<td class='mouse-pointer link-style-font' @click="DAGInfoViewOpen(dagId)">{{dagId}}</td>
+								<td>{{item.Owner}}</td>
+								<!-- tags 標籤 -->
+								<td style="position: relative;">
+									<div class='dag-list-tag-list-ground'>
+										<div class='dag-list-tag-card' 
+										v-for="tagIfo of item.tags"
+										v-if="tagIfo.name != 'buildByDAGBuilder'"
+										>{{tagIfo.name}}</div>
+									</div>
+								</td>
+								<td>
+									{{item.Schedule}}
+								</td>
+								<!-- Last 20 Run Status -->
+								<td class='relative-item'>
+									<div style='display: flex;'>
+										<div class='dagRunStateCircle color-g'>
+											<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec'
+												v-if='item.updateRunsStatistics == true'
+											></i>
+											<label v-else-if="item.RunsStatistics == undefined"> - </label>
+											<label v-else>
+												{{
+													item.RunsStatistics.success != undefined ? item.RunsStatistics.success : '0'
+												}}
+											</label>
+										</div>
+										<div class='dagRunStateCircle color-y'>
+											<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec'
+												v-if='item.updateRunsStatistics == true'
+											></i>
+											<label v-else-if="item.RunsStatistics == undefined"> - </label>
+											<label v-else>
+												{{
+													item.RunsStatistics.running != undefined ? item.RunsStatistics.running : '0'
+												}}						
+											</label>
+
+										</div>
+										<div class='dagRunStateCircle color-r'>
+											<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec'
+												v-if='item.updateRunsStatistics == true'
+											></i>
+											<label v-else-if="item.RunsStatistics == undefined"> - </label>
+											<label v-else>
+												{{
+													item.RunsStatistics.failed != undefined ? item.RunsStatistics.failed : '0'
+												}}
+											</label>
+										</div>
+									</div>
+
+
+								</td>
+
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="table-card-footer">
+					<h3>Fotter</h3>
+				</div>
+			</div>
+		</div>
+			
+		<div id='dagEditer' v-show='NowPage=="dagEditer"'>
+			<div v-if='DebugMode_Editer' style='position:fixed;top:0px;left:0px;z-index:9999;'>
+				DebugMode: Editer
+			</div>
+			<div class="table-card">
+				<div class="table-card-header color-g-b">
+					<h3 class='table-card-title'>DAG Builder</h3>
+					<button class='btn btn-block btn-default btn-right' v-if="!DAG_ID_locker" @click='backToLastPage()'> Close </button>
+					<button class='btn btn-block btn-default btn-right' v-else @click='backToLastPage()'> Cancel </button>
+					
+
+					<div class="switch-btn-ground mouse-pointer" v-else>
+						<div 
+							class="switch-btn-item" 
+						>
+							<div class="switch-btn-none text-h-center">
+								NONE
+							</div>
+						</div>
+					</div>
+					<!-- <button class='btn btn-block btn-default btn-right' @click='NowPage="dagEditer"'> Add New DAG </button> -->
+				</div>
+				<div class="table-card-body">
+					<div id='editer-input-dag-id' class='form-group row'>
+						<label class='col-form-label text-v-center'>排程ID</label>
+						<div class='col-sm-10'>
+							<input class='form-control' v-model.trim="dagIdValue" :placeholder="projectName+'_'" v-on:change="dagIDChange()" :disabled="DAG_ID_locker">	
+							<div class='col-form-label-state-area' :class='dagIdCheckingStateCtyle' style='position: relative;' v-if='dagIdValue != "" & DAG_ID_locker!=true'>
+								<div class='col-form-label-state-row' v-if="dagIdCheckingState=='Checking'">
+									<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec'></i>
+									<label >Checking...</label>
+								</div>
+								<div class='col-form-label-state-row' v-else-if="dagIdCheckingState=='Fail'">
+									<i class='fas fa-times'></i>
+									<label >DAG ID Exists! Please change it.</label>
+								</div>
+								<div class='col-form-label-state-row' v-else-if="dagIdCheckingState=='OK'">
+									<i class='fas fa-check'></i>
+									<label>OK!</label>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<div id='editer-input-owner' class='form-group row'>
+						<label class='col-form-label'>Owner</label>
+						<div class='col-sm-10'>
+							<input class='form-control' v-model.trim="ownerValues" placeholder="請輸入 Owner">
+						</div>
+					</div>
+					
+					<div class='form-group row' v-if='DebugMode_Editer'>
+						<label class='col-form-label'>Retries</label>
+						<div class='col-sm-10'>
+							<input class='form-control' type="number" min="1" max="5" v-model="retries">
+						</div>
+					</div>
+					<div class='form-group row' v-if='DebugMode_Editer'>
+						<label class='col-form-label'>Retry delay(mins)</label>
+						<div class='col-sm-10'>
+							<input class='form-control' type="number" min="0" max="60" v-model="retry_delay">
+						</div>
+					</div>
+					
+					<!-- Schedule -->
+					<div class='form-group row'>
+						<label class='col-form-label'>Schedule</label>
+						<div class='col-sm-10'>
+							<div class='col-stack-form'>
+								<!-- <div class='col-stack-form-header'></div> -->
+								<div class="ScheduleSettingMainWindow">
+									{{cronReadStringGet}}
+									<div class='ScheduleSettingTypeChoseWindow'>
+										<div class='radio-item-h'>
+											<label 
+												v-for="S_type of ScheduleSettingTypeList_Date" 
+												class='radio-item-h-label mouse-pointer' 
+												:class='ScheduleSettingTypeChose_Date==S_type?"radio-item-h-label-chosed":""'
+												:for="S_type"
+											>{{S_type}}
+												<input class='radio-item-h-input' type="radio" :id="S_type" :value="S_type" v-model="ScheduleSettingTypeChose_Date">
+											</label>
+										</div>
+									</div>
+									
+									<div class="ScheduleSettingWindow">
+										<div v-show='ScheduleSettingTypeChose_Date == "One time"' class='cornSettingWindow'>
+											<div style="display: flex;justify-content: center;align-items: center;">
+												<input style='font-size: 2em;margin: .75rem .5rem;' type="date" v-model="S_cronOnce.Date">
+												<input style='font-size: 2em;margin: .75rem .5rem;' type="time" v-model="S_cronOnce.Time">
+											</div>
+										</div>
+									
+										<div v-show='ScheduleSettingTypeChose_Date == "Daily"' class='cornSettingWindow'>
+											<div style="display: flex;justify-content: center;align-items: center;">
+												<label style='font-size: 2em;margin: .75rem .5rem;'>每</label>
+												<input class='changeCronInput' style='font-size: 2em;margin: .75rem .5rem;' v-on:click.stop="" type="number" step="1" min="1" max="31" v-model="I_DailyCronSetting">
+												<label style='font-size: 2em;margin: .75rem .5rem;'>天</label>
+											</div>
+										</div>
+									
+										<div v-show='ScheduleSettingTypeChose_Date == "Weekly"' class='cornSettingWindow'>
+											<div style="display: flex;justify-content: center;align-items: center;">
+												<label style='font-size: 2em;margin: .75rem .5rem;'>周</label>
+												<div style="display:flex;">
+													<div 
+														class='checkbox-list-item mouse-pointer' 
+														:class='L_WeeklyCronSetting.indexOf(list)!=-1?"checkbox-list-item-chosed":""'
+														v-for="list in [...Array(7).keys()]"
+														>
+														<label class='checkbox-list-label'>{{weekdayChinese[list]}}</label>
+														<input class='checkbox-list-input' type="checkbox" :value='list' v-model="L_WeeklyCronSetting"/>
+													</div>
+												</div>
+												<label style="font-size: 2em;margin: .75rem .5rem;">時執行</label>
+											</div>
+										</div>
+										
+										<div v-show='ScheduleSettingTypeChose_Date == "Monthly"' class='cornSettingWindow'>
+											<table style='width:100%'>
+												<colgroup>
+													<col style='width:4em;'>
+												</colgroup>
+												<tbody>
+													<tr>
+														<th style='vertical-align: text-top;'>月</th>
+														<td>
+															<div>
+																<div 
+																	class='checkbox-list-item mouse-pointer' 
+																	:class='D_MonthlyCronSetting.MonthlyList.indexOf(list)!=-1?"checkbox-list-item-chosed":""'
+																	style='float:left;'
+																	v-for="list in [...Array(13).keys()].slice(1)"
+																>
+																	<label class='checkbox-list-label'>{{list}}</label>
+																	<input class='checkbox-list-input' type="checkbox" :value='list' v-model="D_MonthlyCronSetting.MonthlyList"/>
+																</div>
+															</div>
+														</td>
+													</tr>
+													<tr>
+														<th colspan=2><hr></th>
+													</tr>
+													<tr>
+														<th style='vertical-align: text-top;'>日</th>
+														<td>
+															<div>
+																<div 
+																	class='checkbox-list-item mouse-pointer' 
+																	:class='D_MonthlyCronSetting.DayList.indexOf(list)!=-1?"checkbox-list-item-chosed":""'
+																	style='float:left;'
+																	v-for="list in [...Array(32).keys()].slice(1)"
+																>
+																	<label class='checkbox-list-label'>{{list}}</label>
+																	<input class='checkbox-list-input' type="checkbox" :value='list' v-model="D_MonthlyCronSetting.DayList"/>
+																</div>
+															</div>
+
+															<!-- <div class="numberChoseCheckBox" v-for="list of [...Array(32).keys()].slice(1)">
+																<label>{{list}}</label>
+																<input type="checkbox" :value='list' v-model="D_MonthlyCronSetting.DayList"/>
+															</div> -->
+														</td>
+													</tr>
+												</tbody>
+											</table>
+										</div>
+									
+										<div id='detailScheduleSettingWindow' v-show='ScheduleSettingTypeChose_Date == "Customer"' class='cornSettingWindow'>
+											<!-- 月選取文字部分 -->
+											<a class="changeCronATag">
+												<!-- '指定'下的文字顯示內容 -->
+												<label v-show="D_cronDataSetting.Month.cronType=='1'">
+													在{{cornMonth=='*' ? '每個' : cornMonth}}月
+												</label>
+												<!-- '間隔'下的文字顯示內容 -->
+												<label v-show="D_cronDataSetting.Month.cronType=='2'">
+													每間隔 <input class='changeCronInput' v-on:click.stop="" type="number" step="1" min="1" max="12" v-model="D_cronDataSetting.Month.cron_Value"> 個月的
+												</label>
+												<!-- 詳細設定視窗 -->
+												<div v-show='D_cronDataSetting.Month.windowShow' v-on:click.stop="" class="cronChangeWindow">
+													<select v-model="D_cronDataSetting.Month.cronType">
+														<option selected value=1>指定</option>
+														<option value=2>間隔</option>
+													</select>
+													<button v-show="D_cronDataSetting.Month.cronType == '1'" @click='allSwitchButtonClick("Month")'>
+														{{D_cronDataSetting.Month.cronCollect.length!=D_cronDataSetting.Month.maxLength?'全選':'全取消'}}
+													</button>
+													<!-- '指定'下,時間選擇視窗 -->
+													<div v-show="D_cronDataSetting.Month.cronType == '1'" class='cronValueChoseWindow'>
+														<div style="clear:both;display: inline-block;width: 100%;">
+															<div class="numberChoseCheckBox" v-for="list in [...Array(D_cronDataSetting.Month.maxValue+1).keys()].slice(D_cronDataSetting.Month.valueBias)">
+																<label>{{list}}</label>
+																<input type="checkbox" :value="list" v-model="D_cronDataSetting.Month.cronCollect"/>
+															</div>
+														</div>
+													</div>
+												</div>
+												<!-- 視窗開關按鈕 -->
+												<div class='cron_input_area_switch_button' v-on:click="switchCronChangeWindow('Month')">
+													{{D_cronDataSetting.Month.windowShow ? '▲' : '▼'}}
+												</div>
+											</a>
+											<!-- 日期選取文字部分 -->
+											<a class="changeCronATag">
+												<label v-show="D_cronDataSetting.Day.cronType=='1'">
+													{{cornDay=='*' ? '每一日中' : '的'+cornDay+'號中'}}
+												</label>
+												<label v-show="D_cronDataSetting.Day.cronType=='2'">
+													每間隔 <input class='changeCronInput' v-on:click.stop="" type="number" step="1" min="1" max="31" v-model="D_cronDataSetting.Day.cron_Value"> 天中
+												</label>
+												<div v-show='D_cronDataSetting.Day.windowShow' v-on:click.stop="" class="cronChangeWindow">
+													<select v-model="D_cronDataSetting.Day.cronType">
+														<option selected value=1>指定</option>
+														<option value=2>間隔</option>
+													</select>
+													<button v-show="D_cronDataSetting.Day.cronType == '1'" @click='allSwitchButtonClick("Day")'>
+														{{D_cronDataSetting.Day.cronCollect.length!=D_cronDataSetting.Day.maxLength?'全選':'全取消'}}
+													</button>
+													<div v-show="D_cronDataSetting.Day.cronType == '1'" class='cronValueChoseWindow'>
+														<div style="clear:both;display: inline-block;width: 100%;">
+															<div class="numberChoseCheckBox" v-for="list in [...Array(D_cronDataSetting.Day.maxValue+1).keys()].slice(D_cronDataSetting.Day.valueBias)">
+																<label>{{list}}</label>
+																<input type="checkbox" :value="list" v-model="D_cronDataSetting.Day.cronCollect"/>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class='cron_input_area_switch_button' v-on:click="switchCronChangeWindow('Day')">
+													{{D_cronDataSetting.Day.windowShow ? '▲' : '▼'}}
+												</div>
+											</a>
+											<!-- 小時選取文字部分 -->
+											<a class="changeCronATag" class="cronChangeWindow">
+												<label v-show="D_cronDataSetting.Hour.cronType=='1'">
+													{{cornHour=='*' ? '每個小時' : cornHour+'點'}}
+												</label>
+												<label v-show="D_cronDataSetting.Hour.cronType=='2'">
+													每間隔 <input class='changeCronInput' v-on:click.stop="" type="number" step="1" min="1" max="23" v-model="D_cronDataSetting.Hour.cron_Value"> 小時中 的
+												</label>
+												<div v-show='D_cronDataSetting.Hour.windowShow' v-on:click.stop="" class="cronChangeWindow">
+													<select v-model="D_cronDataSetting.Hour.cronType">
+														<option selected value=1>指定</option>
+														<option value=2>間隔</option>
+													</select>
+													<button v-show="D_cronDataSetting.Hour.cronType == '1'" @click='allSwitchButtonClick("Hour")'>
+														{{D_cronDataSetting.Hour.cronCollect.length!=D_cronDataSetting.Hour.maxLength?'全選':'全取消'}}
+													</button>
+													<div v-show="D_cronDataSetting.Hour.cronType == '1'" class='cronValueChoseWindow'>
+														<div style="clear:both;display: inline-block;width: 100%;">
+															<div class="numberChoseCheckBox" v-for="list in [...Array(D_cronDataSetting.Hour.maxValue+1).keys()]">
+																<label>{{list}}</label>
+																<input type="checkbox" :value="list" v-model="D_cronDataSetting.Hour.cronCollect"/>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class='cron_input_area_switch_button' v-on:click="switchCronChangeWindow('Hour')">
+													{{D_cronDataSetting.Hour.windowShow ? '▲' : '▼'}}
+												</div>
+											</a>
+											<!-- 分鐘選取文字部分 -->
+											<a class="changeCronATag" class="cronChangeWindow">
+												<label v-show="D_cronDataSetting.Minute.cronType=='1'">
+													{{cornMinute=='*' ? '每一分鐘' : cornMinute+'分'}}
+												</label>
+												<label v-show="D_cronDataSetting.Minute.cronType=='2'">
+														每間隔 <input class='changeCronInput' v-on:click.stop="" type="number" step="1" min="1" max="59" v-model="D_cronDataSetting.Minute.cron_Value"> 分鐘
+												</label>
+												<div v-show='D_cronDataSetting.Minute.windowShow' v-on:click.stop="" class="cronChangeWindow">
+													<select v-model="D_cronDataSetting.Minute.cronType">
+														<option selected value=1>指定</option>
+														<option value=2>間隔</option>
+													</select>
+													<button v-show="D_cronDataSetting.Minute.cronType == '1'" @click='allSwitchButtonClick("Minute")'>
+														{{D_cronDataSetting.Minute.cronCollect.length!=D_cronDataSetting.Minute.maxLength?'全選':'全取消'}}
+													</button>
+													<div v-show="D_cronDataSetting.Minute.cronType == '1'" class='cronValueChoseWindow'>
+														<div style="clear:both;display: inline-block;width: 100%;">
+															<div class="numberChoseCheckBox" v-for="list in [...Array(D_cronDataSetting.Minute.maxValue+1).keys()]">
+																<label>{{list}}</label>
+																<input type="checkbox" :value="list" v-model="D_cronDataSetting.Minute.cronCollect"/>
+															</div>
+														</div>
+													</div>
+												</div>
+												<div class='cron_input_area_switch_button' v-on:click="switchCronChangeWindow('Minute')">
+													{{D_cronDataSetting.Minute.windowShow ? '▲' : '▼'}}
+												</div>
+											</a>
+											<!-- Weekday選取文字部分 -->
+											<!-- 指定日子 -->
+											<a class="changeCronATag" style='width: calc(100% - 13.3px);height: 1.5em;'>
+												<label style="top: -0.5em;position: relative;">並且為周</label>
+												<div style="clear:both;display: inline-block;">
+													<div class="numberChoseCheckBox" v-for="list in [...Array(7).keys()]">
+														<label>{{weekdayChinese[list]}}</label>
+														<input type="checkbox" :value='list' v-model="cronWeekDayCollect"/>
+													</div>
+												</div>
+												<label style="top: -0.5em;position: relative;">時執行</label>
+											</a>
+										</div>
+
+									</div>
+								</div>
+								
+								<div class="ScheduleSettingMainWindow" v-show='ScheduleSettingTypeChose_Date != "One time"'>
+									<div class='ScheduleSettingTypeChoseWindow'>
+										<div class='radio-item-h'>
+											
+											<label 
+												v-for="S_type of ScheduleSettingTypeList_Time" 
+												class='radio-item-h-label flex-50 mouse-pointer' 
+												:class='ScheduleSettingTypeChose_Time==S_type?"radio-item-h-label-chosed":""'
+												:for="S_type"
+											>{{S_type}}
+												<input class='radio-item-h-input' type="radio" :id="S_type" :value="S_type" v-model="ScheduleSettingTypeChose_Time">
+											</label>
+										</div>
+									</div>
+
+									<div class="ScheduleSettingWindow">
+										<div v-show='ScheduleSettingTypeChose_Time == "Specify"' class='cornSettingWindow'>
+
+
+
+
+
+
+
+											<table style='width:100%'>
+												<colgroup>
+													<col style='width:4em;'>
+												</colgroup>
+												<tbody>
+													<tr>
+														<th style='vertical-align: text-top;'>時</th>
+														<td>
+															<div>
+																<div 
+																	class='checkbox-list-item mouse-pointer' 
+																	:class='D_TimeSetting.Hour.cronCollect.indexOf(list)!=-1?"checkbox-list-item-chosed":""'
+																	style='float:left;'
+																	v-for="list in [...Array(24).keys()]"
+																>
+																	<label class='checkbox-list-label'>{{list}}</label>
+																	<input class='checkbox-list-input' type="checkbox" :value='list' v-model="D_TimeSetting.Hour.cronCollect"/>
+																</div>
+															</div>
+														</td>
+													</tr>
+													<tr>
+														<th colspan=2><hr></th>
+													</tr>
+													<tr>
+														<th style='vertical-align: text-top;'>分</th>
+														<td>
+															<div>
+																<div 
+																	class='checkbox-list-item mouse-pointer' 
+																	:class='D_TimeSetting.Minute.cronCollect.indexOf(list)!=-1?"checkbox-list-item-chosed":""'
+																	style='float:left;'
+																	v-for="list in [...Array(60).keys()]"
+																>
+																	<label class='checkbox-list-label'>{{list}}</label>
+																	<input class='checkbox-list-input' type="checkbox" :value='list' v-model="D_TimeSetting.Minute.cronCollect"/>
+																</div>
+															</div>
+
+														</td>
+													</tr>
+												</tbody>
+											</table>
+										</div>
+									
+										<div v-show='ScheduleSettingTypeChose_Time == "Loop"' class='cornSettingWindow'>
+											<div style="display: flex;justify-content: center;align-items: center;">
+												<label style='font-size: 2em;margin: .75rem .5rem;'>每隔</label>
+												<select style='font-size: 2em;margin: .75rem .5rem;' v-model="D_TimeSetting.Minute.cron_Value">
+													<option value=1>1</option>
+													<option value=5>5</option>
+													<option value=10>10</option>
+													<option value=15>15</option>
+													<option value=20>20</option>
+													<option value=30>30</option>
+													<option value=60>60</option>
+												</select>
+												<label style='font-size: 2em;margin: .75rem .5rem;'>分鐘</label>
+											</div>
+										</div>
+										
+									</div>
+									
+								</div>
+								
+								
+								<div class="preViewDatetime_window" v-show='ScheduleSettingTypeChose_Date != "One time"'>
+									<p class="preViewDatetime_p">下10次執行時間預覽</p>
+									<div class="preViewDatetime_list">
+										<div class="preViewDatetime_item" v-for="(S_time, index) of perViewCronDatetime">
+											{{S_time}}
+										</div>
+									</div>
+								</div>
+								
+								<div class="ScheduleSettingWindow-footer">
+								</div>
+							</div>
+							
+
+						</div>
+					</div>
+					
+					<!-- Tags -->
+					<div class='form-group row'>
+						<label class='col-form-label'>Tags</label>
+						<div class='col-sm-10'>
+							<div style='display:grid;grid-template-columns: 45% 10% 45%;margin: 5px 0px 5px 0px;'>
+								<div class='tags-ground-window'>
+									<div class='tags-ground-window-header'>
+									</div>
+									<div>
+										<div class='SetTagsView'>
+											<div class="TagItem" v-for="tagName of addTags">
+												<label>{{tagName}}</label>
+												<button @click='RemoveTag(tagName)'>X</button>
+											</div>
+										</div>
+										<div class='tag-input-area'>
+											<input v-model='tagAdder' @keyup.enter="AddTag(null)">
+											<div class='tag-input-area-i-area mouse-pointer' @click="AddTag(null)">
+												<i class="fas fa-angle-double-right"></i>
+											</div>
+											
+										</div>
+										
+									</div>
+									<div class='tags-ground-window-footer'>
+									</div>
+								</div>
+								<div class="section text-h-center text-v-center" style='display: grid;'>
+									<p style='font-size: 4vw;'>⇦</p>
+								</div>
+								<div class='tags-ground-window'>
+									<div class='tags-ground-window-header'>
+									</div>
+									<div>
+										<div class='tag-input-area'>
+											<input v-model.trim='tagFilter'>
+											<div class='tag-input-area-i-area mouse-pointer' @click="GetTagsListFromServer()">
+												<i class='fas fa-3x fa-sync-alt' :class="serverTagsLoading?'anima-360-in-2-sec':''"></i>
+											</div>
+											
+										</div>
+										<div class='SetTagsView'>
+											<div class="TagItem" v-for="tagName of serverTags" v-show="addTags.indexOf(tagName) == -1 & tagName.includes(tagFilter)">
+												<label>{{tagName}}</label>
+												<button @click='AddTag(tagName)'>+</button>
+											</div>
+										</div>
+									</div>
+									<div class='tags-ground-window-footer'>
+									</div>
+								</div>
+							</div>
+						
+						</div>
+					</div>
+					
+					<!-- Description -->
+					<div class='form-group row'>
+						<label class='col-form-label'>介紹</label>
+						<div class='col-sm-10'>
+							<textarea class="description_textarea" v-model="dagDescriptionValue"></textarea>
+						</div>
+					</div>
+					
+					<!-- Task 區 -->
+					<div class='form-group row'>
+						<label class='col-form-label'>排程流程設計</label>
+						<div class='col-sm-10' style='position: relative;min-height: 200px;'>
+							<!-- 拉動檔案區塊 -->
+							<div v-show="dag_item_build_index.length==0" ref="select_frame" 
+								class="EmptyDAGSettingWindow text-h-center text-v-center" 
+								:class="EmptyDAGSettingWindowClass">
+								請點擊 
+								<button v-on:click="BuildNewDAGItem('BashOperator', null, '')">+</button>
+								或將csv檔案拉入此區域來載入設定，也可
+								<button @click="$refs.inputDAGsettingCSV.click()">點擊此處</button>
+								導入CSV檔案
+							</div>
+
+
+							<div class="ToolBox" v-show="dag_item_build_index.length!=0">
+								<button v-on:click="BuildNewDAGItem('BashOperator', null, '')">+</button>
+								<button @click="$refs.inputDAGsettingCSV.click()">載入csv檔案</button>
+								<button @click="clearAllDAGStaegs()">清空所有</button>
+								<button @click="$refs.OutputDAGStagesSettingCSV_A.click()">匯出設定檔</button>
+								<!-- CSV檔案 input DOM, 將其功能映射到別的地方，本體則隱藏起來  -->
+								<input v-show='false' ref="inputDAGsettingCSV" id='DAGsettingCSV' type="file" accept='.csv' @change="GetDAGsettingCSV($event.target.files[0])">
+								<!-- CSV檔案 output 按鈕, 將其功能映射到別的地方，本體則隱藏起來  -->
+								<a v-show='false' ref="OutputDAGStagesSettingCSV_A" onclick="OutputDAGStagesSettingCSV(this)" download="downlaod.csv" href="#">download</a>
+							</div>
+							<!-- DAG Tasks 設計視窗 -->
+							<div class='DesignArea' v-show="dag_item_build_index.length!=0">
+								<!-- Task 物件 -->
+								<div class='task-event'>
+									<p class='color-g'>START</p>
+								</div>
+								<div style='display:grid;'>
+									<div 
+										v-for="(keyChose, index) in Object.keys(dag_item_build_list)"
+										style="transition: grid-row-start 2s;"
+										:style='"grid-row-start: "+(dag_item_build_index.indexOf(keyChose)+1) + ";"'
+									>	
+										<bash-operator-item 
+											v-if="dag_item_build_list[keyChose].type=='BashOperator'"
+											v-bind:post="dag_item_build_list[keyChose]"
+											v-bind:now_list="dag_item_build_index"
+											v-bind:uuid_key="keyChose"
+											v-bind:uploaditem="dag_item_wait_upload_list"
+											v-bind:dag_id="dagIdValue"
+											@delete-item="DelDAGItemByUuid"
+											@item-up="item_up"
+											@item-down="item_down"
+										></bash-operator-item>
+										<!-- 'PythonOperator' 以及 'RunPythonFile' 目前已停用，留下來當記錄 -->
+										<!-- <python-operator-item -->
+											<!-- v-else-if="dag_item_build_list[keyChose].type=='PythonOperator'" -->
+											<!-- v-bind:post="dag_item_build_list[keyChose]" -->
+											<!-- v-bind:index="index" -->
+											<!-- v-bind:max_index="dag_item_build_index.length-1" -->
+											<!-- @delete-item="DelDAGItemByUuid" -->
+											<!-- @item-up="item_up" -->
+											<!-- @item-down="item_down" -->
+										<!-- ></python-operator-item> -->
+										<!-- <run-python-file-item -->
+											<!-- v-else-if="dag_item_build_list[keyChose].type=='RunPythonFile'" -->
+											<!-- v-bind:post="dag_item_build_list[keyChose]" -->
+											<!-- v-bind:index="index" -->
+											<!-- v-bind:max_index="dag_item_build_index.length-1" -->
+											<!-- @delete-item="DelDAGItemByUuid" -->
+											<!-- @item-up="item_up" -->
+											<!-- @item-down="item_down" -->
+										<!-- ></run-python-file-item> -->
+									</div>
+								</div>
+								<div class='task-event'>
+									<p class='color-r'>END</p>
+								</div>
+							</div>
+
+						</div>
+					</div>
+					
+					<!-- // 附件區 -->
+					<div class='form-group row'  v-if='DebugMode_Editer'>
+						<label class='col-form-label'>附件</label>
+						<div class='col-sm-10'>
+						
+							<div id='uploadFileArea' style="position: relative;min-height: 200px;">
+								<div 
+									v-show="Object.keys(uploadFileList).length==0" 
+									class="EmptyDAGSettingWindow text-h-center text-v-center"
+									:class="EmptyDAGSettingWindowClass"
+									ref="select_uploadFileArea"
+								>
+									請將想上傳的檔案拉入此區域或
+									<button @click="$refs.uploadFilesToServer.click()">點擊此處</button>
+									選擇檔案
+								</div>
+
+
+								<div class="ToolBox" v-show="Object.keys(uploadFileList).length!=0">
+									<button @click="$refs.uploadFilesToServer.click()">新增檔案</button>
+									<!-- 附件檔案 input DOM, 將其功能映射到別的地方，本體則隱藏起來  -->
+									<input v-show='false' ref="uploadFilesToServer" id='inputTest' type="file" multiple="multiple" @change="addAttachFiles($event.target.files)">
+								</div>
+								<div>
+									<div v-for="(item, key, index) in uploadFileList" class='uploaded-file-card table-card' :style="item.styleSet"> 
+										<div class='uploaded-file-card-file-title'>
+											<div class='text-v-center'>{{item.fileBlob.name}}</div>
+											<i class="fas fa-times mouse-pointer"
+												@click="delUploadFile(key)"
+											></i>
+										</div>
+										<div class='uploaded-file-card-alart-area'>
+											<div class='alert alert-warning' style='top: .25rem;z-index: 0;' v-if='item.Exists'>
+												<h5>
+													<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
+													Warning!!
+												</h5>
+												檔案已存在Server，要重複上傳?
+												<div style='display: grid;'>
+													<label 
+														@click='item.IfUploadAnyway =! item.IfUploadAnyway'
+														class='t-f-btn mouse-pointer'
+													>{{item.IfUploadAnyway?'是':'否'}}
+													</label>
+												</div>
+											</div>
+										</div>
+
+										<!-- <button @click="delUploadFile(key)">X</button> -->
+
+										<!-- <span  class='uploadedFile_label'>{{item.fileBlob.name}}</span>
+										<div  class='uploadedFile_status'>{{item.status}}
+											<button v-show='item.status == "已存在，略過上傳"' @click="uploadFileToServer(key, true)">Cover it</button>
+										</div>
+										<div v-if="item.Exists">
+											已存在
+										</div> -->
+									</div>
+								</div>
+							</div>
+						
+						</div>
+					</div>
+					
+					<div class='form-group row'>
+						<label class='col-form-label'>Submit</label>
+						<div class='col-sm-10'>
+							<div class='submit-btn mouse-pointer'>
+								<div v-if="DAG_ID_locker" @click="UploadButtomClick()">
+									Update
+								</div>
+								<div v-else @click="UploadButtomClick()">
+									Upload
+								</div>
+							</div>
+							<div v-if="uploadButtomAllow.length!=0">
+								<div class='alert alert-danger' style="padding-top:2rem;top: -1.5rem;z-index:0;" :class="shake_upload_fail_window?'animate__animated animate__shakeY':''">
+									<h5>
+										<i class="fas fa-exclamation-triangle"></i>
+										Please solve the following problems:
+									</h5>
+									<ul>
+										<li class='check-fail-li mouse-pointer'
+											v-for="(fail_item, index) of uploadButtomAllow"
+											@click="scrollToDOMID(fail_item.dom_id)"
+										>{{fail_item.failMessage}}</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="table-card-footer">
+					<h3>Fotter</h3>
+				</div>
+			</div>
+			
+			
+			
+
+		</div>
+		
+		<div id='dagUploadViewer' v-if='dagUploadViewerOpen'>
+			<div>
+				<div id='dag-setting-upload-state' class="table-card">
+					<input type='checkbox' v-model="dag_settingDaebugFail" v-if="DebugMode_Editer">
+					<div class="table-card-header color-g-b">
+						<h3 class='table-card-title'>DAG Setting & .py 生成</h3>
+					</div>
+					<div class="table-card-body">
+						<div class="table-card" style='overflow: hidden;'>
+							<div class='upload-window-item'>
+								<div class='upload-window-item-header' :class="dagSettingFileStatusStyleClass">
+									<i v-if='dagSettingFileStatus=="Fail"' class='fas fa-times'></i>
+									<i v-else-if='dagSettingFileStatus=="Success"' class='fas fa-check'></i>
+									<i v-else-if='dagSettingFileStatus=="Uploading"' class='fas fa-cloud-upload-alt'></i>
+									<i v-else-if='dagSettingFileStatus=="Wait"' class='fas fa-clock'></i>
+									<div class='upload-window-item-content text-v-center'>Build setting file & .py file</div>
+									<div class='upload-window-item-status text-v-center' v-if="dagSettingFileStatus!='Fail'">{{dagSettingFileStatusMessage}}</div>
+								</div>
+								<div class='upload-window-item-body' v-if="dagSettingFileStatus=='Fail'">
+									<div class='alert alert-danger'>
+										<h5>
+											<i class="fas fa-exclamation-triangle"></i>
+											Warning!!
+										</h5>
+										{{dagSettingFileStatusMessage}}
+										<div style='display: flex;justify-content: space-between;'>
+											<div class='retry-btn' @click="retryUploadNewDAGSettingInfoToServer()">Retry</div>
+
+											<div class='retry-btn' @click="dagUploadViewerOpen = false">取消上傳，返回上一頁</div>
+	
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				<div class='dag-setting-upload-next-stage' style='display: flex;' :class="'font-color-'+dagSettingFileStatus">
+					<i  class="fas fa-angle-double-down dag-setting-upload-next-stage-main-icon">
+						<i v-if='dagSettingFileStatus=="Fail"' class='fas fa-times dag-setting-upload-next-stage-status-icon'></i>
+						<i v-else-if='dagSettingFileStatus=="Success"' class='fas fa-check dag-setting-upload-next-stage-status-icon'></i>
+						<i v-else-if='dagSettingFileStatus=="Uploading"' class='fas fa-cloud-upload-alt anima-uploading-in-1-sec dag-setting-upload-next-stage-status-icon'></i>
+						<i v-else-if='dagSettingFileStatus=="Wait"' class='fas fa-clock dag-setting-upload-next-stage-status-icon'></i>
+					</i>
+				
+				</div>
+
+				<div id='task-py-upload-state' class="table-card">
+					<div class="table-card-header color-g-b">
+						<h3 class='table-card-title'>Task 所需 .py 檔案上傳</h3>
+					</div>
+					<div class="table-card-body">
+						<div class="table-card" style='overflow: hidden;' 
+							v-for="(fileItem, fileKey, index) in dag_item_wait_upload_list" 
+							v-if="!(fileItem.VueCustomerItem.pyFileExists & !fileItem.UploadAnyway) & fileItem.file != null">
+							<input type='checkbox' v-model="fileItem.debugFail" v-if="DebugMode_Editer">
+							<div class='upload-window-item'>
+								<div class='upload-window-item-header' :class="fileItem.uploadStatusStyleClass">
+									<i v-if='fileItem.uploadStatus=="Fail"' class='fas fa-times'></i>
+									<i v-else-if='fileItem.uploadStatus=="Success"' class='fas fa-check'></i>
+									<i v-else-if='fileItem.uploadStatus=="Uploading"' class='fas fa-cloud-upload-alt anima-uploading-in-1-sec'></i>
+									<i v-else-if='fileItem.uploadStatus=="Wait"' class='fas fa-clock'></i>
+									<div class='upload-window-item-content text-v-center'>{{fileItem.file.name}}</div>
+									<div class='upload-window-item-status text-v-center' v-if="fileItem.uploadStatus!='Fail'">{{fileItem.uploadMessage}}</div>
+								</div>
+								<div class='upload-window-item-body' v-if="fileItem.uploadStatus=='Fail'">
+									<div class='alert alert-danger'>
+										<h5>
+											<i class="fas fa-exclamation-triangle"></i>
+											Warning!!
+										</h5>
+										{{fileItem.uploadMessage}}
+										<div class='retry-btn' @click="uploadTaskPyFilesToServer(fileItem)">Retry</div>
+									</div>
+								</div>
+							</div>
+						</div>
+	
+					</div>
+				</div>
+	
+				<div id='attach-upload-state' class="table-card"  v-if='DebugMode_Editer'>
+					<div class="table-card-header color-g-b">
+						<h3 class='table-card-title'>附件上傳</h3>
+					</div>
+					<div class="table-card-body">
+						
+						<div class="table-card" style='overflow: hidden;' 
+							v-for="(fileItem, fileKey, index) in uploadFileList" 
+							v-if="!(fileItem.Exists & !fileItem.IfUploadAnyway)">
+							<input type='checkbox' v-model="fileItem.debugFail" v-if="DebugMode_Editer">
+							<div class='upload-window-item'>
+								<div class='upload-window-item-header' :class="fileItem.uploadStatusStyleClass">
+									<i v-if='fileItem.uploadStatus=="Fail"' class='fas fa-times'></i>
+									<i v-else-if='fileItem.uploadStatus=="Success"' class='fas fa-check'></i>
+									<i v-else-if='fileItem.uploadStatus=="Uploading"' class='fas fa-cloud-upload-alt anima-uploading-in-1-sec'></i>
+									<i v-else-if='fileItem.uploadStatus=="Wait"' class='fas fa-clock'></i>
+									<div class='upload-window-item-content text-v-center'>{{fileItem.fileBlob.name}}</div>
+									<div class='upload-window-item-status text-v-center' v-if="fileItem.uploadStatus!='Fail'">{{fileItem.uploadMessage}}</div>
+								</div>
+								<div class='upload-window-item-body' v-if="fileItem.uploadStatus=='Fail'">
+									<div class='alert alert-danger'>
+										<h5>
+											<i class="fas fa-exclamation-triangle"></i>
+											Warning!!
+										</h5>
+										{{fileItem.uploadMessage}}
+										<div class='retry-btn' @click="uploadAttachFileToServer(fileKey)">Retry</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+					</div>
+				</div>
+
+				<div class='dag-setting-upload-next-stage' style='display: flex;' :class="dagSettingFileStatus!='Success'?'':'font-color-'+allUploadStatus">
+					<i  class="fas fa-angle-double-down dag-setting-upload-next-stage-main-icon">
+						<i v-if='dagSettingFileStatus!="Success"' class='fas fa-clock dag-setting-upload-next-stage-status-icon'></i>
+						<i v-else-if='allUploadStatus=="Fail"' class='fas fa-times dag-setting-upload-next-stage-status-icon'></i>
+						<i v-else-if='allUploadStatus=="Success"' class='fas fa-check dag-setting-upload-next-stage-status-icon'></i>
+						<i v-else-if='allUploadStatus=="Uploading"' class='fas fa-question dag-setting-upload-next-stage-status-icon'></i>
+						<i v-else-if='allUploadStatus=="Wait"' class='fas fa-clock dag-setting-upload-next-stage-status-icon'></i>
+					</i>
+				
+				</div>
+
+				<div id='upload-final-check' class="table-card">
+					<div class="table-card-header color-g-b">
+						<h3 class='table-card-title'>結果確認</h3>
+					</div>
+					<div class="table-card-body">
+						<div class='submit-btn mouse-pointer' v-if='dagSettingFileStatus!="Success"'>
+							<div style="border-radius: .2rem;">
+								等待所有檔案上傳中...
+							</div>
+						</div>
+	
+						<div class='alert alert-danger' v-else-if='allUploadStatus=="Fail"'>
+							<h5>
+								<i class="fas fa-exclamation-triangle"></i>
+								Warning!!
+							</h5>
+							所有檔案皆上傳失敗!(但不影響DAG檔案生成)，請嘗試重新上傳檔案
+							<div style='display: flex;justify-content: space-between;'>
+								<div class='retry-btn' @click="retryUploadFilesToServer()">重新上傳所有檔案</div>
+								<div class='retry-btn' @click="backToLastPage()">我知道了，但我還是想離開</div>
+								<div class='retry-btn' @click="dagUploadViewerOpen = false">返回編輯頁面</div>
+							</div>
+						</div>
+	
+						<div class='alert alert-warning' v-else-if='allUploadStatus=="Uploading"'>
+							<h5>
+								<i class="fas fa-exclamation-triangle"></i>
+								Warning!!
+							</h5>
+							某些檔案上傳失敗，若有需要請嘗試重新上傳檔案
+							<div style='display: flex;justify-content: space-between;'>
+								<div class='retry-btn' @click="backToLastPage()">我知道了，但我還是想離開</div>
+								<div class='retry-btn' @click="dagUploadViewerOpen = false">返回編輯頁面</div>
+							</div>
+						</div>
+	
+						<div class='alert alert-success' v-else-if='allUploadStatus=="Success"'>
+							<h5>
+								<i class="fas fa-check"></i>
+								Successaully
+							</h5>
+							所有檔案上傳完成
+							<div style='display: flex;justify-content: space-between;'>
+								<div class='retry-btn' style="background-color: #28a745;border-color: #23923d;" @click="backToLastPage()">離開</div>
+							</div>
+						</div>
+	
+						<div class='submit-btn mouse-pointer' v-else-if='allUploadStatus=="Wait"'>
+							<div style="border-radius: .2rem;">
+								等待所有檔案上傳中...
+							</div>
+						</div>
+					</div>
+				</div>
+
+
+			</div>
+		</div>
+		
+		<div class='DAG_Detail' v-show='NowPage=="dagInfoView"'>
+			<div class="table-card">
+				<div class="table-card-header color-g-b padding-clear">
+					<div class="table-card-header-sheet-list-bar">
+						<p 
+							v-for="S_sheetChoseForList of ['DAG_Infomation', 'Runs_history', 'File_manager']"
+							class='sheet-p' :class="SheetChose==S_sheetChoseForList?'color-w word-b':''"
+							@click='DAGDetailSheetClick(S_sheetChoseForList)'
+						>{{S_sheetChoseForList}}</p>
+						<div style='width: -webkit-fill-available;'>						
+							<p 
+							class='sheet-p' 
+							style='float:right;'
+							@click='NowPage="dagListViewer"'
+							>X</p>
+						</div>
+
+						<!-- <p class='sheet-p'>789</p> -->
+					</div>
+					<!-- <button class='btn btn-block btn-default btn-right' @click='NowPage="dagListViewer"'> Close </button> -->
+				</div>
+				<div class="table-card-body">
+
+					<div v-show='SheetChose=="DAG_Infomation"'>
+						<div class='relative-item'>
+							<div class='reloading-window text-v-center text-h-center' v-if='updateDAGSettingInfo==true'>
+								<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec font-size-3em'></i><label class='font-size-3em'>Loading...</label>
+							</div>
+							<div v-if='DAGSettingInfo["SysInfo"]=="Loading"'>
+								<div>Loading</div>
+							</div>
+							<div v-else-if='DAGSettingInfo["SysInfo"]=="Warning"'>
+								<div class='alert alert-danger'>
+									<h5>
+										<i class="fas fa-exclamation-triangle"></i>
+										Warning!!
+									</h5>
+									{{DAGSettingInfo.Message}}
+									<br>
+									請尋求工程組幫助以排除問題!
+								</div>
+							</div>
+							<div v-else-if='DAGSettingInfo["SysInfo"]=="Success"'>
+								
+								<div class="table-card">
+									<div class="table-card-header color-g-b" style='display: flex;'>
+										<div class="switch-btn-ground mouse-pointer flex-10" v-if="DAGList[DAGDetailOpen].is_paused != undefined">
+											<div 
+												class="switch-btn-item" 
+												:style='DAGList[DAGDetailOpen].is_paused?"left:-70%;":"left:0%"'
+												@click.stop="clickDAGPauseStatusSwitch(DAGDetailOpen, !DAGList[DAGDetailOpen].is_paused)"
+											>
+												<div class="switch-btn-on text-h-center">
+													ON
+												</div>
+												<div class="switch-btn-btn" style='position: relative;'>
+													<div style='display: flex;width:calc(1.5rem + 4px);height:calc(1.5rem + 4px);'>
+														<div class='flex-50' style='background-color: #83c783;'></div>
+														<div class='flex-50' style='background-color: #dc7a87'></div>
+													</div>
+													<div class='switch-btn-btn-face text-h-center' style='position: absolute;top:0px;left:-1px;'>
+														|||
+													</div>
+												</div>
+												<div class="switch-btn-off text-h-center">
+													OFF
+												</div>
+											</div>
+										</div>
+										<div class="switch-btn-ground mouse-pointer flex-10" v-else>
+											<div 
+												class="switch-btn-item" 
+											>
+												<div class="switch-btn-none text-h-center">
+													NONE
+												</div>
+											</div>
+										</div>
+										<h3 class='table-card-title flex-80' style='display: flex !important;'>DAG ID : {{DAGDetailOpen}}
+											<a :href="'http://34.80.102.147:8080/tree?dag_id='+DAGDetailOpen" target="_blank"><i class="fas fa-box-tissue"></i></a>
+										</h3>
+										
+										<button class='btn btn-block btn-default btn-right flex-10' @click="openDAGEditerWithDAGSettingInfo()"> Edit </button>
+									</div>
+	
+									<div class="table-card-body">
+										<div class='form-group row'>
+											<label class='col-form-label text-v-center'>DAG ID</label>
+											<div class='col-sm-10'>
+												<input class='form-control' v-model.trim="DAGSettingInfo.DAGDetailInfo.DAG_ID" disabled>
+											</div>
+										</div>
+	
+										<div class='form-group row'>
+											<label class='col-form-label text-v-center'>Owner</label>
+											<div class='col-sm-10'>
+												<input class='form-control' v-model.trim="DAGSettingInfo.DAGDetailInfo.Owner" disabled>
+											</div>
+										</div>
+										<div class='form-group row'>
+											<label class='col-form-label'>Retries</label>
+											<div class='col-sm-10'>
+												<input class='form-control' type="number" v-model="DAGSettingInfo.DAGDetailInfo.Retries" disabled>
+											</div>
+										</div>
+	
+										<div class='form-group row'>
+											<label class='col-form-label'>Retry delay(mins)</label>
+											<div class='col-sm-10'>
+												<input class='form-control' type="number" v-model="DAGSettingInfo.DAGDetailInfo.Retry_delay" disabled>
+											</div>
+										</div>
+										
+										<div class='form-group row'>
+											<label class='col-form-label'>Schedule type</label>
+											<div class='col-sm-10'>
+												<input class='form-control' v-model.trim="DAGSettingInfo.DAGDetailInfo.ScheduleDateType" disabled>
+											</div>
+										</div>
+	
+										<div class='form-group row'>
+											<label class='col-form-label'>Schedule</label>
+											<div class='col-sm-10'>
+												<div v-if='DAGSettingInfo.DAGDetailInfo.ScheduleDateType == "One time"' class='cornSettingWindow'>
+													<table style="height: 100%;width: 100%;">
+														<tr>
+															<th style="text-align:right;"><input style='font-size: 2em;' type="date" v-model="DAGSettingInfo.DAGDetailInfo.ScheduleSettingInfo.Date" disabled></th>
+															<th style="text-align:left;"><input style='font-size: 2em;' type="time" v-model="DAGSettingInfo.DAGDetailInfo.ScheduleSettingInfo.Time" disabled></th>
+														</tr>
+													</table>
+												</div>
+												<div v-else-if='DAGSettingInfo.DAGDetailInfo.ScheduleDateType == "Daily"' class='cornSettingWindow'>
+													<table style="height: 100%;width: 100%;">
+														<colgroup>
+															<col>
+															<col style='width:1px'>
+														</colgroup>
+														<tr>
+															<th style="text-align:right;">每</th>
+															<td><input class='changeCronInput' v-on:click.stop="" type="number" v-model="DAGSettingInfo.DAGDetailInfo.ScheduleSettingInfo.DailyValue" disabled></td>
+															<th style="text-align:left;">天  </th>
+														</tr>
+													</table>
+												</div>
+	
+												<div v-else-if='DAGSettingInfo.DAGDetailInfo.ScheduleDateType == "Weekly"' class='cornSettingWindow'>
+													<a class="changeCronATag" style='width: calc(100% - 13.3px);height: 1.5em;'>
+														<label style="top: -0.5em;position: relative;">為周</label>
+														<div style="clear:both;display: inline-block;">
+															<div class="numberChoseCheckBox" v-for="list in [...Array(7).keys()]">
+																<label>{{weekdayChinese[list]}}</label>
+																<input type="checkbox" :value='list' v-model="DAGSettingInfo.DAGDetailInfo.ScheduleSettingInfo.WeeklyValue" disabled>
+															</div>
+														</div>
+														<label style="top: -0.5em;position: relative;">時執行</label>
+													</a>
+												</div>
+	
+												<div v-else-if='DAGSettingInfo.DAGDetailInfo.ScheduleDateType == "Monthly"' class='cornSettingWindow'>
+													<table>
+														<colgroup>
+															<col style='width:2.2em;'>
+														</colgroup>
+														<tbody>
+															<tr>
+																<th style='vertical-align: text-top;'>月</th>
+																<td>
+																	<div class="numberChoseCheckBox" v-for="list of [...Array(13).keys()].slice(1)">
+																		<label>{{list}}</label>
+																		<input type="checkbox" :value='list' v-model="DAGSettingInfo.DAGDetailInfo.ScheduleSettingInfo.MonthlyValue.MonthlyList" disabled>
+																	</div>
+																</td>
+															</tr>
+															<tr>
+																<th colspan=2><hr></th>
+															</tr>
+															<tr>
+																<th style='vertical-align: text-top;'>日</th>
+																<td>
+																	<div class="numberChoseCheckBox" v-for="list of [...Array(32).keys()].slice(1)">
+																		<label>{{list}}</label>
+																		<input type="checkbox" :value='list' v-model="DAGSettingInfo.DAGDetailInfo.ScheduleSettingInfo.MonthlyValue.DayList" disabled>
+																	</div>
+																</td>
+															</tr>
+														</tbody>
+													</table>
+												</div>
+												<div v-if='DAGSettingInfo.DAGDetailInfo.ScheduleDateType != "One time"' class='cornSettingWindow'>
+													<div v-if='DAGSettingInfo.DAGDetailInfo.ScheduleTimeType == "Specify"' class='cornSettingWindow'>
+														<table>
+															<colgroup>
+																<col style='width:2.2em;'>
+															</colgroup>
+															<tbody>
+																<tr>
+																	<th style='vertical-align: text-top;'>時</th>
+																	<td>
+																		<div class="numberChoseCheckBox" v-for="list of [...Array(24).keys()]">
+																			<label>{{list}}</label>
+																			<input type="checkbox" :value='list' v-model="DAGSettingInfo.DAGDetailInfo.ScheduleSettingInfo.TimeSetting.Hour.cronCollect" disabled>
+																		</div>
+																	</td>
+																</tr>
+																<tr>
+																	<th colspan=2><hr></th>
+																</tr>
+																<tr>
+																	<th style='vertical-align: text-top;'>分</th>
+																	<td>
+																		<div class="numberChoseCheckBox" v-for="list of [...Array(60).keys()]">
+																			<label>{{list}}</label>
+																			<input type="checkbox" :value='list' v-model="DAGSettingInfo.DAGDetailInfo.ScheduleSettingInfo.TimeSetting.Minute.cronCollect" disabled>
+																		</div>
+																	</td>
+																</tr>
+															</tbody>
+														</table>
+													</div>
+	
+													<div v-else-if='DAGSettingInfo.DAGDetailInfo.ScheduleTimeType == "Loop"' class='cornSettingWindow'>
+														<table style="height: 100%;width: 100%;">
+															<colgroup>
+																<col>
+																<col style='width:1px'>
+															</colgroup>
+															<tr>
+																<th style="text-align:right;">每隔</th>
+																<td>
+																	<select v-model="DAGSettingInfo.DAGDetailInfo.ScheduleSettingInfo.TimeSetting.Minute.cron_Value" disabled>
+																		<option :value="DAGSettingInfo.DAGDetailInfo.ScheduleSettingInfo.TimeSetting.Minute.cron_Value">{{DAGSettingInfo.DAGDetailInfo.ScheduleSettingInfo.TimeSetting.Minute.cron_Value}}</option>
+																	</select>
+																</td>
+																<th style="text-align:left;">分鐘</th>
+															</tr>
+														</table>
+													</div>
+													
+												</div>
+											</div>
+										</div>
+	
+										<div class='form-group row'>
+											<label class='col-form-label'>Tags</label>
+											<div class='col-sm-10'>
+												<div style='display:grid;margin: 5px 0px 5px 0px;'>
+													<div>
+														<div class='tag-detail-window'>
+															<div class="TagItem" v-for="tagName of DAGSettingInfo.DAGDetailInfo.Tags">
+																<label>{{tagName}}</label>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+	
+										<div class='form-group row'>
+											<label class='col-form-label'>Description</label>
+											<div class='col-sm-10'>
+												<textarea class='form-control' v-model.trim="DAGSettingInfo.DAGDetailInfo.Description" disabled></textarea>
+											</div>
+										</div>
+										
+										<!-- Task 區 -->
+										<div class='form-group row'>
+											<label class='col-form-label'>DAG Tasks</label>
+											<div class='col-sm-10'>
+												<div class='DesignArea' v-show="DAGSettingInfo.DAGDetailInfo.TaskSettingIndex.length!=0">
+													<!-- Task 物件 -->
+													<div class='task-event'>
+														<p class='color-g'>START</p>
+													</div>
+													<div style='display:grid;'>
+														<div 
+															v-for="(TaskSettingItem, keyChose, index) in DAGSettingInfo.DAGDetailInfo.TaskSettingList"
+															style="transition: grid-row-start 2s;"
+															:style='"grid-row-start: "+(DAGSettingInfo.DAGDetailInfo.TaskSettingIndex.indexOf(keyChose)+1) + ";"'
+														>	
+															<div class='dag-task-card'>
+																<div class='dag-item-left-icon-background text-h-center' >
+																	<i class="fas fa-circle">
+																		<div class='task-type-word'>B</div>
+																	</i>
+																</div>
+																<div class="dag-item table-card">
+																	<div class="table-card-header color-g-b" style='display:flex;'>
+																		<div class='flex-10'>
+																		</div>
+																		<div class='flex-80' style='color:#fff'>
+																			{{TaskSettingItem.tesk_id}}
+																		</div>
+																		<div class='flex-10'>
+																			<button class="dag-toolbox-btn text-v-center text-h-center mouse-pointer" @click="TaskSettingItem.ifOpen =! TaskSettingItem.ifOpen" style='float: right;'>
+																				<i :class='TaskSettingItem.ifOpen ? "fas fa-minus":"fas fa-plus"'></i>
+																			</button>
+																		</div>
+																	</div>
+																	<div class="table-card-body task-body" :style='TaskSettingItem.ifOpen?"":"max-height: 0px;"'>
+																		<div  class="dag-item-label">
+																			<label class="input_area_label">Task ID:</label>
+																			<input v-model="TaskSettingItem.tesk_id" placeholder="請輸入" disabled>
+																		</div>
+																		<div class="dag-item-label">
+																			<label class="input_area_label">python code:</label>
+																			<div class='task-py-code-input-area'>
+																				<input v-model="TaskSettingItem.python_name" placeholder="請輸入" disabled>
+																			</div>
+																		</div>
+																		<div  class="dag-item-label">
+																			<label class="input_area_label">parameters:</label>
+																			<input v-model="TaskSettingItem.bash_command" placeholder="(無)" disabled>
+																		</div>
+													
+																	</div>
+																	<div class="table-card-footer">
+																	</div>
+																</div>
+															</div>
+														</div>
+													</div>
+													<div class='task-event'>
+														<p class='color-r'>END</p>
+													</div>
+												</div>
+
+
+												<!-- <div v-for="(keyChose, index) in DAGSettingInfo.DAGDetailInfo.TaskSettingIndex">
+													<bash-operator-item 
+														v-if="DAGSettingInfo.DAGDetailInfo.TaskSettingList[keyChose].type=='BashOperator'"
+														v-bind:post="DAGSettingInfo.DAGDetailInfo.TaskSettingList[keyChose]"
+														v-bind:index="index"
+														v-bind:max_index="DAGSettingInfo.DAGDetailInfo.TaskSettingIndex.length-1"
+														v-bind:disable="true"
+													></bash-operator-item>
+												</div> -->
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div v-show='SheetChose=="Runs_history"' v-if='DAGList[DAGDetailOpen] != undefined'>
+						<div class="table-card runhistory-table-table-card" :style='DAGList[DAGDetailOpen].updateRunsList==true?"overflow: hidden;":""'>
+							<div class='reloading-window text-v-center text-h-center' v-if='DAGList[DAGDetailOpen].updateRunsList==true'>
+								<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec font-size-3em'></i><label class='font-size-3em'>Loading...</label>
+							</div>
+							<table v-if="DAGList[DAGDetailOpen].dagRuns != undefined" class="runhistory-table">
+								<colgroup>
+									<col style="width: 1px;">
+									<col style="width: 1px;">
+									<col>
+								</colgroup>
+								<thead>
+									<tr>
+										<th>#</th><th>State</th><th>Execution Date</th>
+									</tr>
+								</thead>
+								<tbody>
+									<template v-for="(runsInfo, index) of DAGList[DAGDetailOpen].dagRuns.total">
+										<tr @click="clickDAGRunIDRow(runsInfo)">
+											<td>{{index+1}}</td>
+											<td>{{runsInfo.state}}</td>
+											<td>{{runsInfo.execution_date}}</td>
+										</tr>
+										
+										<tr class='runhistory-table-detail-tr' >
+											<td colspan=3>
+												<div 
+													class='runhistory-table-detail-tr-background' 
+													:class='DagRunIDChosed==runsInfo.dag_run_id?"":"runhistory-table-detail-tr-backgroun-close"' 
+													>
+													<transition name="runhistory-table-detail-tr-anime">
+														<div class="table-card" v-if='DagRunIDChosed==runsInfo.dag_run_id'>
+															<p>{{runsInfo.dag_run_id}}</p>
+															<div v-if='runsInfo.Logs != undefined'>
+																<div v-for="LogsItem of runsInfo.Logs">
+																	<p>{{LogsItem.task_id}}</p>
+																	<div v-for="(LogContentItem, Index) of LogsItem.Logs">
+																		<p>{{Index+1}}</p>
+																		<textarea>
+																			{{LogContentItem.content}}
+																		</textarea>
+																	</div>
+																</div>
+															</div>
+														</div>
+													</transition>
+												</div>
+											</td>
+										</tr>
+									</template>
+								</tbody>
+							</table>
+							<div v-else>
+								<div class='alert alert-danger'>
+									<h5>
+										<i class="fas fa-exclamation-triangle"></i>
+										Warning!!
+									</h5>
+									無法獲得 DAG Runs 資訊
+									<br>
+									請尋求工程組幫助以排除問題!
+								</div>
+							</div>
+						</div>
+
+					
+					</div>
+					
+					<div v-show='SheetChose=="Sourse_code"' v-if='false'>
+						<div class='relative-item' v-if='DAGList[DAGDetailOpen]'>
+							<div class='reloading-window text-v-center text-h-center' v-if='updateSourceCode == true'>
+								<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec font-size-3em'></i><label class='font-size-3em'>Loading...</label>
+							</div>
+							<template>
+								<prism-editor 
+								class="my-editor height-200 preview_textarea" 
+								v-model="DAGList[DAGDetailOpen]['content']" 
+								:highlight="highlighter" 
+								line-numbers
+								readonly
+								style='height: 80vh;'
+								v-if="DAGList[DAGDetailOpen]['content'] != undefined"
+								></prism-editor>
+							</template>
+						</div>
+					</div>
+				 
+					<div v-show='SheetChose=="File_manager"'>
+						<div class='file-manager-main' v-if='DAGList[DAGDetailOpen] != undefined'>
+							<div :style="'width:'+fileWindowWidth+'px;'" class='file-manager-file-window' v-if='false'>
+								<file-manager-tree v-if='DAGList[DAGDetailOpen].fileManager != undefined'
+									v-bind:files='DAGList[DAGDetailOpen].fileManager'
+									v-bind:folder_chose="folderChose"
+								></file-manager-tree>
+								<div class='file-manager-col-resize' @mousedown="resizeColWindow"></div>
+							</div>
+							<div class='file-manager-file-detail'>
+								<!-- 刪除確認視窗 -->
+								<transition name="delay-display-none" v-if='false'>
+									<div class='top-window-alert-background animate__animated' :class="deleteCheckWindowShow?'animate__fadeIn':'animate__fadeOut'"  v-show='deleteCheckWindowShow' @click='deleteCheckWindowShow=false'>
+										<div>
+											<div class='top-window-alert-window animate__animated' :class="deleteCheckWindowShow?'animate__fadeInDown':'animate__fadeOutUp'" @click.stop="">
+												<div class='top-window-alert-header'>
+													<p>確認刪除以下檔案?</p>
+													<i class='fas fa-times' @click='deleteCheckWindowShow=false'></i>
+												</div>
+												<div class='top-window-alert-body'>
+													<ul>
+														<li v-for="FileName of delFilePathList">{{FileName.split('/').reverse()[0]}}</li>
+													</ul>
+												</div>
+												<div class='top-window-alert-footer'>
+													<button class="btn btn-default" @click='deleteCheckWindowShow=false'>取消</button>
+													<button class="btn btn-primary" @click='deleteAllChosedFile(delFilePathList)'>確認</button>
+												</div>
+											</div>
+										</div>
+									</div>
+								</transition>
+
+								<div class='file-manager-toolbox'>
+									<!-- 重新整理 -->
+									<div>
+										<i class="fas fa-3x fa-sync-alt"
+										@click="getFileManagerInfoByDAGId(DAGDetailOpen)"></i>
+									</div>
+									<div>
+										<!-- 刪除圖標 -->
+										<div style='position: relative;' @click="clickDeleteAllChosedFileButtom()" v-if='false'>
+											<i class="far fa-file"></i>
+											<i style='position: absolute;
+											top: .5rem;
+											font-size: 1rem;
+											left: 1.4rem;' class="fas fa-times"></i>
+										</div>
+										<!-- 下載圖標 -->
+										<i class="fas fa-cloud-download-alt"
+											@click="makeZipFile()"
+										></i>
+
+									</div>
+								</div>
+
+								<div class='file-manager-table'>
+									<div class='file-manager-table-title-item text-v-center text-h-center' >
+										<input type="checkbox" v-model="AllCheckBoxValue" @click='clickAllCheckBox()'>
+									</div>
+									
+									<div v-for='title of ["Name", "Type", "Size","Last modified"]'
+										class='file-manager-table-title-item'
+									>
+										{{title}}
+									</div>
+
+									<template v-if='folderChoseItem.parentFolder != null'>
+										<div class='file-manager-table-item'></div>
+										<div class='file-manager-table-item'
+											@click="clickFileMangerFolderOnTable(folderChoseItem.parentFolder.folderName, folderChoseItem.parentFolder)"
+										>(上一層)</div>
+										<div class='file-manager-table-item'></div>
+										<div class='file-manager-table-item'></div>
+										<div class='file-manager-table-item'></div>
+									</template>
+									<template v-if='folderChoseItem.folders != undefined'>
+										<template v-if='Object.keys(folderChoseItem.folders).length == 0 &
+														Object.keys(folderChoseItem.files).length == 0'>
+											<div class='file-manager-table-item'></div>
+											<div class='file-manager-table-item'>(無任何檔案)</div>
+											<div class='file-manager-table-item'></div>
+											<div class='file-manager-table-item'></div>
+											<div class='file-manager-table-item'></div>
+										</template>
+									</template> 
+
+									<template v-for='(folderItem, folderName, index) in folderChoseItem.folders' v-if='false'>
+										<div class='file-manager-table-item text-v-center text-h-center'><input type="checkbox" v-model='folderItem.chosed'></div>
+										<div class='file-manager-table-item'
+											@click="clickFileMangerFolderOnTable(folderName, folderItem)"
+										>{{folderName}}</div>
+										<div class='file-manager-table-item'>-</div>
+										<div class='file-manager-table-item'>-</div>
+										<div class='file-manager-table-item'>-</div>
+									</template>
+
+									<template v-for='(fileItem, fileName, index) in folderChoseItem.files'>
+										<div class='file-manager-table-item text-v-center text-h-center'><input type="checkbox" v-model='fileItem.chosed'></div>
+										<div class='file-manager-table-item'>{{fileName}}</div>
+										<div class='file-manager-table-item'>{{fileItem.Type}}</div>
+										<div class='file-manager-table-item'>{{fileItem.Size}}</div>
+										<div class='file-manager-table-item'>{{fileItem.LastModified}}</div>
+									</template>
+
+									
+								</div>
+							</div>
+						</div>
+					</div>
+
+
+				</div>
+				<div class="table-card-footer">
+					<h3>Fotter 123</h3>
+				</div>
+			</div>
+		
+<!-- 		
+			<div class='DAGDetailToolBoxBackGround'>
+				<div 
+				v-for="S_sheetName of ['DAG_Infomation', 'Runs_history', 'Sourse_code', 'File_manager']"
+				class='DAGDetailToolBoxLabel'
+				:class='DetailSheetChose==S_sheetName?"SheetWhichChosed":"SheetWhichNotChosed"'
+				@click='DetailSheetChose=S_sheetName'
+				>
+					{{S_sheetName}}
+				</div>
+				
+				<div class='DAGDetailToolBoxLabel_CloseButtom' 
+				@click='NowPage="dagListViewer"'
+				>
+					X
+				</div>
+			</div>
+			
+			<div class='DAGDetailDiv'>
+				
+				<div v-show='DetailSheetChose=="DAG_Infomation"' class='ViewTableBackDiv BoderRadius0055'>
+					
+				
+				
+				</div>
+			
+				<div v-show='DetailSheetChose=="Sourse_code"' class='ViewTableBackDiv BoderRadius0055'>
+					<prism-editor 
+						v-if="item.content != undefined"
+						class="my-editor preview_textarea" 
+						v-model="item.content" 	
+						:highlight="highlighter" 
+						line-numbers
+						readonly
+					></prism-editor>	
+					<div v-else>
+						Loading...
+					</div>
+				</div>
+				<div v-show='DetailSheetChose=="Runs_history"'>
+					<div class='ViewTableBackDiv BoderRadius0055'>
+						<table v-if="item.dagRuns != undefined" class='DAGRunsViewTable'>
+							<thead>
+								<tr>
+									<th>State</th>
+									<th>dag_run_id</th> 	
+									<th>Execution Date</th>
+									<th>Start Date</th>
+									<th>End Date</th>
+								</tr>
+							</thead>
+							<tbody>
+								<template v-for="(runsInfo, index) of item.dagRuns.total">
+								<tr>
+									<td>{{runsInfo.state}}</td>
+									<td @click='GetTaskInstances(runsInfo)'>{{runsInfo.dag_run_id}}</td>
+									<td>{{runsInfo.execution_date}}</td>
+									<td>{{runsInfo.start_date}}</td>
+									<td>{{runsInfo.end_date}}</td>
+								</tr>
+								
+								<tr v-if='runsInfo.TaskInstances != undefined'>
+									<td colspan=5><div>
+										<div v-for="(TaskInstance, index) of runsInfo.TaskInstances">
+											{{TaskInstance.task_id}}
+											{{TaskInstance.logChose}}
+											<select @change='GetgetTaskInstanceLog(TaskInstance, runsInfo.dag_run_id)' v-model="TaskInstance.logChose">
+												<option disabled value="">請選擇</option>
+												<option 
+												v-for="index of [...Array(TaskInstance.try_number+1).keys()].slice(1)" 
+												:value='index'
+												>{{index}}</option>
+											</select>
+											<template v-if="TaskInstance.Logs != undefined">
+												<textarea 
+													v-for="(logContent, logIndex, index) in TaskInstance.Logs" 
+													v-show='logIndex == ""+TaskInstance.logChose'
+												>{{TaskInstance.Logs[""+TaskInstance.logChose]}}</textarea>
+											</template>
+										</div>
+									</div></td>
+								</tr>
+								
+								
+								</template>
+							</tbody>
+						</table>
+						<div v-else>
+							Loading...
+						</div>
+					</div>
+				</div>
+				
+				<div v-show='DetailSheetChose=="File_manager"'>
+					<div v-if='item.fileManager != undefined' class='ViewTableBackDiv fileManagerBackDiv'>
+						<div class='DetailSheetToolbox'>Toobox</div>
+						
+						<div class='fileManagerLeftWindow'>
+							<floder-tree-item 
+								style='margin:0px;'
+								:item="item.fileManager"
+								:folderChosed = 'fileTreeFolderChosed'
+								@click-folder="UpdateFileTreeInfo"
+							>
+							</floder-tree-item>
+						</div>
+						<div class='fileManagerRightWindow' v-if="DAGDetailOpen == item.dag_id">
+							<table>
+								<thead>
+									<tr>
+										<th></th>
+										<th>File name</th>
+										<th>File type</th>
+										<th>File size</th>
+										<th>Last modified</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-if='fileTreeInfo.parentFolder != null'>
+										<th></th>
+										<th class='BlueAndUnderline' @click='openFolderOnFileManagerTable(fileTreeInfo.parentFolder)'>(上層資料夾)</th>
+										<th></th>
+										<th></th>
+										<th></th>
+									</tr>
+									<tr v-for="(fileInfo, fileName, index) in fileTreeInfo.folders">
+										<th><input class='fileManagerCheckBox' type='checkbox'></th>
+										<th class='BlueAndUnderline' @click="openFolderOnFileManagerTable(fileInfo)">{{fileName}}</th>
+										<th>folder</th>
+										<th></th>
+										<th></th>
+									</tr>
+									<tr v-for="(fileInfo, fileName, index) in fileTreeInfo.files">
+										<th><input class='fileManagerCheckBox' type='checkbox'></th>
+										<th>{{fileName}}</th>
+										<th>{{fileInfo.Type}}</th>
+										<th>{{fileInfo.Size}}</th>
+										<th>{{fileInfo.LastModified}}</th>
+									</tr>
+								</tbody>
+								
+								
+							</table>
+							
+						</div>
+					</div>
+				</div>
+				
+				
+			</div> -->
+		
+		</div>
+	
+	</div>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/2.0.2/anime.min.js"></script>
+	<script type="text/javascript" src="/static/AirFlowUploadWeb/dagEditer.js"></script>
+	<script type="text/javascript" src="/static/AirFlowUploadWeb/dagInfoView.js"></script>
+	<script type="text/javascript" src="/static/AirFlowUploadWeb/dagListViewer.js"></script>
+	<script type="text/javascript" src="/static/AirFlowUploadWeb/MainVueJs.js"></script>
+	
+	<!-- <script src="ObjectGet.js"></script> -->
+</body>
+</html> 
+
+<!-- {% endverbatim %} -->

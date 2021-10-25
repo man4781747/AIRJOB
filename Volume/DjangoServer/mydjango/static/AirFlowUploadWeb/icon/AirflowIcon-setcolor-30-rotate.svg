@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid meet" viewBox="0 0 640 640" width="300" height="300">
+<defs>
+	<style xmlns="http://www.w3.org/2000/svg">
+		.stroke-color-in {opacity:1;stroke:#000;stroke-opacity:1;stroke-width:15;fill-opacity:0;}
+		.stroke-color-out {opacity:1;stroke:#000;stroke-opacity:1;stroke-width:30;fill-opacity:0;}
+		.fill-color {opacity:1;stroke-width:0;fill-opacity:0.3;}
+		.color-set {stroke:#000;fill: #000;}
+	</style>
+</defs>
+<path d="M94.65 349.2L549.06 289.67L412.69 416.84L321.86 319.44L231.02 222.03L94.65 349.2Z" id="bFgXp3xrX" class='fill-color color-set'></path>
+<path d="M222.52 418.37L349.69 554.74L290.16 100.33L417.33 236.71L222.52 418.37Z" id="a3feXnH4le" class='fill-color color-set'></path>
+<path d="M223.59 411.83L350.76 548.21L593.5 613.23L321 321L48.5 28.77L291.24 93.79L415.62 227.18" id="b4YLxv1gSc" class='stroke-color-out color-set'></path>
+<path d="M230.17 223.59L93.79 350.76L28.77 593.5L613.23 48.5L548.21 291.24L411.83 418.41" id="c11ZHHKkMx" class='stroke-color-out color-set'></path>
+<path d="M548.21 291.24L93.79 350.76" id="cohdEDYf4" class='stroke-color-in color-set'></path>
+<path d="M291.24 93.79L350.76 548.21" id="l1X2Zp4VNT" class='stroke-color-in color-set'></path>
+</svg>

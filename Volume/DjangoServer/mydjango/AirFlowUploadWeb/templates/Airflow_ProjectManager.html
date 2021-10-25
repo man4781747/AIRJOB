@@ -1,0 +1,403 @@
+ <!-- {% verbatim %} -->
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Air Flow DAG File Builder</title>
+	<!-- 導入Vue -->
+	<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+	<script src="/static/AirFlowUploadWeb/DateFormat.js"></script>
+	<link rel="stylesheet" href="/static/AirFlowUploadWeb/ProjectManager/mainStyle.css">
+	<!-- <link rel="stylesheet" href="/static/AirFlowUploadWeb/dagEditer.css">
+	<link rel="stylesheet" href="/static/AirFlowUploadWeb/dagListViewer.css"> -->
+	<link rel="stylesheet" href="/static/AirFlowUploadWeb/fontawesome-free-5.15.4-web/css/all.css">
+	<link href="/static/AirFlowUploadWeb/fontawesome-free-5.15.4-web/css/fontawesome.css" rel="stylesheet">
+	<link href="/static/AirFlowUploadWeb/fontawesome-free-5.15.4-web/css/brands.css" rel="stylesheet">
+	<link href="/static/AirFlowUploadWeb/fontawesome-free-5.15.4-web/css/solid.css" rel="stylesheet">
+
+	<link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+  />
+
+	<!-- Noto Sans TC -->
+	<!-- https://fonts.google.com/specimen/Noto+Sans+TC?preview.text_type=custom&preview.text=Almost%20before%20we%20knew%20it,%20we%20had%20left%20the%20ground.%E5%AE%89%E5%AE%89#license -->
+	<!-- font-family: 'Roboto', sans-serif; -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"> 
+
+
+	<!-- https://openbase.com/js/vue-prism-editor -->
+	<!-- Prism Editor -->
+	<script src="https://unpkg.com/vue-prism-editor"></script>
+	<link rel="stylesheet" href="https://unpkg.com/vue-prism-editor/dist/prismeditor.min.css" />
+
+	<!-- custom highlighter: -->
+	<script src="https://unpkg.com/prismjs/prism.js"></script>
+	<script src="https://unpkg.com/prismjs@1.24.1/components/prism-python.min.js"></script>
+	<link rel="stylesheet" href="https://unpkg.com/prismjs/themes/prism-tomorrow.css" />
+
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+	<style>
+	  .height-200{
+		height: 200px  
+	  }
+	  
+	  .my-editor {
+		/* we dont use `language-` classes anymore so thats why we need to add background and text color manually */
+		background: #2d2d2d;
+		color: #ccc;
+
+		/* you must provide font-family font-size line-height. Example:*/
+		font-family: Fira code, Fira Mono, Consolas, Menlo, Courier, monospace;
+		font-size: 14px;
+		line-height: 1.5;
+		padding: 5px;
+	  }
+
+	  /* optional class for removing the outline */
+	  .prism-editor__textarea:focus {
+		outline: none;
+	  }
+	</style>
+
+</head>
+<body>
+	<div id="VueCtrlMainDiv">
+		J個是現有 Project 頁面
+		<ul>
+			<li v-for="S_projectName of projectList">
+				<a 
+				:href='"http://34.80.102.147:8000/AirFlowUploadWeb/testHTML/"+S_projectName+"/"'
+				target="_blank"
+				>{{S_projectName}}</a>
+			</li>
+		</ul>
+	</div>
+	<hr>
+	Main Dashbord 測試
+	<div class='test-window'>
+		<div id="main-grid">
+			<div class="box-small-card" id ="test-view">
+				<div class="box-small-card-content">
+					<i class="fas fa-carrot"></i>
+					<div class="box-small-card-word">
+						XXX Jobs
+					</div>
+				</div>
+				<div class='box-small-card-title'>
+					測試用的視窗 - 1
+				</div>
+			</div>
+
+			<div class="box-small-card" id ="test-view">
+				<div class="box-small-card-content">
+					<i class="fas fa-cat"></i>
+					<div class="box-small-card-word">
+						XXX Jobs
+					</div>
+				</div>
+				<div class='box-small-card-title'>
+					測試用的視窗 - 2
+				</div>
+			</div>
+
+			<div class="box-small-card" id ="airjob-view">
+				<div class="box-small-card-content">
+					<airjob-icon class='box-small-card-icon' style='height: 2rem;'></airjob-icon>
+					<div class="box-small-card-word">
+						{{dagJobNum}} Jobs
+					</div>
+				</div>
+				<div class='box-small-card-title'>
+					AIRJOB 自主排程
+				</div>
+			</div>
+
+			<div class="box-small-card" id ="airflow-view" @mouseover="isHovering = true" @mouseout="isHovering = false">
+				<div class="box-small-card-content">
+					<airflow-icon class='box-small-card-icon' :class="isHovering?'animate__animated animate__bounce':''" style='height: 2rem;'></airflow-icon>
+					<div class="box-small-card-word">
+						{{dagJobNum}} Jobs
+					</div>
+				</div>
+				<div class='box-small-card-title'>
+					Airflow 系統排程
+				</div>
+			</div>
+
+			<!-- 更新Table視窗 -->
+			<div id='table-update-window' class="box-card">
+				<div class='box-card-header'>
+					<div class='box-card-title'>
+						已更新Table
+					</div>
+				</div>
+				<div class='box-card-body'>
+					<div style="height: 100%;display: grid;grid-auto-rows: min-content auto;">
+						<p style='font-weight: 600;margin-top: 0px;'>近兩周導入數量:{{tableInfoList.length}}</p>
+						<div class='small-scrollbar' style="overflow: auto;">
+							<table class="dealut-table" style='width: 100%;'>
+								<colgroup>
+									<col style="">
+									<col style="width: 1px;">
+									<col style="width: 1px;">
+								</colgroup>
+								<thead>
+									<tr>
+										<th class='nowrap'>Table Name</th>
+										<th class='nowrap' style="max-width: 5rem;min-width: 5rem;">更新時間</th>
+										<th class='nowrap' style="max-width: 5rem;min-width: 5rem;">更新頻率</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="(tableInfo, index) in tableInfoList" v-if="index < 15">
+										<td><div>{{tableInfo.Name}}</div></td>
+										<td style='position: relative;'><div class='nowrap text-overflow-hidden'>{{tableInfo.UpdateDateTime}}</div></td>
+										<td style='position: relative;'><div class='nowrap text-overflow-hidden'>{{tableInfo.UpdateFrequency}}</div></td>
+									</tr>
+									<tr v-else>
+										<td><div>123</div></td>
+										<td style='position: relative;'><div class='nowrap text-overflow-hidden'>123</div></td>
+										<td style='position: relative;'><div class='nowrap text-overflow-hidden'>123</div></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+				<div class='box-card-footer'>
+					<div></div>
+					<a>More..</a>
+				</div>
+			</div>
+
+			<!-- AIRJOB異常通知 -->
+			<div id='yesterday-fail-list-window' class="box-card">
+				<div class='box-card-header'>
+					<div class='box-card-title'>
+						AIRJOB異常通知
+					</div>
+				</div>
+				<div class='box-card-body'>
+					<div style="display: grid;position: relative;height: 100%;grid-auto-rows: min-content min-content auto;">
+						<div>
+							<template v-for="(projectName, index) in projectList">
+								<!-- <input :id="'fail-window-'+projectName" type="radio" :value="projectName" v-model="projectChosed"> -->
+								<label class="btn-base" :for="'fail-window-'+projectName"
+									:class="projectChosed==projectName?'btn-style-primary':'btn-style-close'"
+									style='margin-right: .75rem;'
+								>{{projectName}}
+									<input style='display: none;' :id="'fail-window-'+projectName" type="radio" :value="projectName" v-model="projectChosed">
+								</label>
+							</template>
+						</div>
+						<hr style="width:100%;">
+						<div 
+							v-for="(projectName, index) in projectList" 
+							v-show="projectName == projectChosed"
+							style="display: grid;position: relative;height: 100%;overflow: auto;"
+						>
+							<template v-if="failList[projectName] == 'Loading'">
+								<div class='loading-window text-v-center text-h-center'>
+									<i class="fas fa-spinner anima-360-in-2-sec"></i>
+									<label>Loading</label>
+								</div>
+							</template>
+							<template v-else>
+								<template v-if="Object.keys(failList[projectName]).length == 0">
+									沒有任何錯誤，太棒惹!
+								</template>
+								<template v-else>
+									<p style='font-weight: 600;'>昨日異常數:{{Object.keys(failList[projectName]).length}}</p>
+									<div class='small-scrollbar' style="overflow: auto;">
+										<table class="dealut-table" style='width: 100%;'>
+											<colgroup>
+												<col span="2" style="width: 1px;">
+												<col style="">
+												<col style="">
+											</colgroup>
+											<thead>
+												<tr>
+													<th class='nowrap' style="max-width: 5rem;min-width: 5rem;">排程ID</th>
+													<th class='nowrap' style="max-width: 5rem;min-width: 5rem;">Owner</th>
+													<th class='nowrap'>排程時間</th>
+													<th class='nowrap' style="max-width: 5rem;min-width: 5rem;">執行時間</th>
+												</tr>
+											</thead>
+											<tbody>
+												<template v-for="inn in [...Array(300).keys()]">
+												<tr v-for="(failInfo, dag_id, index) in failList[projectName]">
+													<td><a
+															:href="AIRJOB_url+'/AirFlowUploadWeb/testHTML/'+projectName+'/?Page=dagInfoView&dag_id='+dag_id"
+															target="_blank"
+														>{{dag_id}}</a></td>
+													<td style='position: relative;'><div class='nowrap text-overflow-hidden'>{{failInfo.owner}}</div></td>
+													<td style='position: relative;'><div class='nowrap text-overflow-hidden'>{{failInfo.scheduleString}}</div></td>
+													<td style='position: relative;'><div class='nowrap text-overflow-hidden'>{{new Date(failInfo.failList[0].execution_date).format('(w) yyyy-MM-dd hh:mm:ss')}}</div></td>
+													
+												</tr>
+												</template>
+											</tbody>
+										</table>
+									</div>
+								</template>
+							</template>
+	
+						</div>
+					</div>
+				</div>
+				<div class='box-card-footer'>
+					<div></div>
+					<a>More..</a>
+				</div>
+			</div>
+		</div>
+	</div>	
+	<hr>
+
+
+	Hive 資料表查詢 葉面測試
+	<div class='test-window'>
+		<div id='hive-searcher'>
+			<h1>Hive 資料表查詢</h1>
+			<h3>顯示目前 HAP Hive 所有資料表的最新更新資訊，如要檢視Table的歷史紀錄，可以參考Feature Store裡的td2hive_table_update。</h3>
+			<div style='display: flex;justify-content: center;'>
+				<div class='search-bar'>
+					<input v-model.lazy="filterStr_" @keyup.enter="runFilter(filterStr_)">
+					<i class="fas fa-search " @click="runFilter(filterStr_)"></i>
+				</div>
+			</div>
+			<hr>
+			<div id='hive-table'>
+				<div id='hive-table-header'>
+					<label style="font-size: 2rem;font-weight: 600;">Page: {{parseInt(pageChose) + 1}}</label>
+					<div class='page-choser'>
+						<div v-if="pageListChose==0" class='page-chose-btn page-chose-btn-noactive'>
+							<i class="fas fa-angle-double-left"></i>
+						</div>
+						<div v-else class='page-chose-btn' @click="pageListChose = pageListChose -1">
+							<i class="fas fa-angle-double-left"></i>
+						</div>
+						<div class='page-chose-btn' v-for="pageIndex of pageList[pageListChose]"
+							:class="pageIndex == pageChose?'page-chose-btn-chosed':''"
+							@click="pageChose = pageIndex"
+						>
+							{{parseInt(pageIndex) + 1}}
+						</div>
+						<div v-if="pageListChose==pageList.length-1" class='page-chose-btn page-chose-btn-noactive'>
+							<i class="fas fa-angle-double-right"></i>
+						</div>
+						<div v-else class='page-chose-btn' @click="pageListChose = pageListChose +1">
+							<i class="fas fa-angle-double-right"></i>
+						</div>
+						
+					</div>
+				</div>
+				<div id='hive-table-body'>
+					<table id='hive-table-view'>
+						<thead>
+							<tr>
+								<th>
+									<div @click="sortByBtmChose('tableName')">
+										<template v-if="sortBy=='tableName'">
+											<i v-if='sortValue==1' class="fas fa-sort-down"></i>
+											<i v-else class="fas fa-sort-up"></i>
+										</template>
+										Table Name
+									</div></th>
+								<th>
+									<div @click="sortByBtmChose('tableName_Chinese')">
+										<template v-if="sortBy=='tableName_Chinese'">
+											<i v-if='sortValue==1' class="fas fa-sort-down"></i>
+											<i v-else class="fas fa-sort-up"></i>
+										</template>
+										中文名稱
+									</div>
+								</th>
+								<th>
+									<div @click="sortByBtmChose('DBNanme')">
+										<template v-if="sortBy=='DBNanme'">
+											<i v-if='sortValue==1' class="fas fa-sort-down"></i>
+											<i v-else class="fas fa-sort-up"></i>
+										</template>
+										資料庫
+									</div>
+								</th>
+								<th>
+									<div @click="sortByBtmChose('lastUpdate')">
+										<template v-if="sortBy=='lastUpdate'">
+											<i v-if='sortValue==1' class="fas fa-sort-down"></i>
+											<i v-else class="fas fa-sort-up"></i>
+										</template>
+										最後更新時間
+									</div>
+								</th>
+								<th>
+									<div @click="sortByBtmChose('status')">
+										<template v-if="sortBy=='status'">
+											<i v-if='sortValue==1' class="fas fa-sort-down"></i>
+											<i v-else class="fas fa-sort-up"></i>
+										</template>
+										更新狀況
+									</div>
+								</th>
+								<th>
+									<div @click="sortByBtmChose('updateFrequency')">
+										<template v-if="sortBy=='updateFrequency'">
+											<i v-if='sortValue==1' class="fas fa-sort-down"></i>
+											<i v-else class="fas fa-sort-up"></i>
+										</template>
+										更新頻率
+									</div>
+								</th>
+								<th>
+									<div @click="sortByBtmChose('buildDate')">
+										<template v-if="sortBy=='buildDate'">
+											<i v-if='sortValue==1' class="fas fa-sort-down"></i>
+											<i v-else class="fas fa-sort-up"></i>
+										</template>
+										上架時間
+									</div>
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="(data, index) in tableData[pageChose]" 
+								:style="data.status=='異常'?'background-color: antiquewhite;':''"
+							>
+								<td>{{data.tableName}}</td>
+								<td>{{data.tableName_Chinese}}</td>
+								<td>{{data.DBNanme}}</td>
+								<td>{{data.lastUpdate}}</td>
+								<td>
+									<div v-if="data.status=='異常'" >
+										{{data.status}}
+									</div>
+									<div v-else>
+										{{data.status}}
+									</div>
+								
+								</td>
+								<td>{{data.updateFrequency}}</td>
+								<td>{{data.buildDate}}</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+</body>
+<script type="text/javascript" src="/static/AirFlowUploadWeb/ProjectManager/ProjectManager_MainJS.js"></script>
+
+<script type="text/javascript" src="/static/HiveInfoSearcherPage/MainJS.js"></script>
+<link rel="stylesheet" href="/static/HiveInfoSearcherPage/MainStyle.css">
+
+</html> 
+
+<!-- {% endverbatim %} -->
