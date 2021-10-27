@@ -269,202 +269,164 @@
 							' @click='filterChanged()'></i>
 					</div>
 					<hr>
-					<table class="table table-bordered">
-						<colgroup>
-							<col style="width: 1px;">
-							<col style="width: 1px;">
-							<col style="width: 1px;">
-							<col style="width: 1px;">
-							<col style="width: 1px;">
-							<col style="width: 1px;">
-							<col>
-							<col style="width: 1px;">
-						</colgroup>
-						<thead class='table-theader'>
-							<tr style='border-bottom: 2px solid #dee2e6;text-align: center;'>
-								<th><div style="min-width: 4em;white-space: nowrap;">手動執行</div></th>
-								<th><div style="min-width: 5em;white-space: nowrap;">排程開關</div></th>
-								<th><div style="min-width: 5em;white-space: nowrap;">最後執行結果</div></th>
-								<th><div style="min-width: 5em;white-space: nowrap;">排程ID</div></th>
-								<th><div style="min-width: 5em;white-space: nowrap;">Owner</div></th>
-								<th><div style="width: 10em;white-space: nowrap;">Tags</div></th>
-								<th><div style="min-width: 5em;white-space: nowrap;">排程時間</div></th>
-								<th><div style="white-space: nowrap;">上架時間</div></th>
-							</tr>
-						</thead>
-						<tbody class='table-tbody'>
-							<tr v-for="(item, dagId, index) of DAGList" v-show="item.filterShow">
-								<!-- 手動執行按鈕 -->
-								<td>
-									<div class='btn btn-dark' v-if="item.is_paused != undefined & item.is_paused == false & item.SettingFile!=false & item.ImportFailMessage == ''"
-										@click="clickTrigerDAGRunButton(dagId)"
-									>
-										Action
-									</div>
-									<div class='btn btn-not-active' v-else>
-										Action
-									</div>
-									<!-- <div class='text-h-center' v-if="item.is_paused != undefined & item.is_paused == false">
-										<i class="fas fa-caret-square-right triget-btn-active mouse-pointer"
+					<div style='width:100%;overflow: auto;'>
+						<table class="table table-bordered">
+							<colgroup>
+								<col style="width: 1px;">
+								<col style="width: 1px;">
+								<col style="width: 1px;">
+								<col style="width: 1px;">
+								<col style="width: 1px;">
+								<col style="width: 1px;">
+								<col>
+								<col style="width: 1px;">
+							</colgroup>
+							<thead class='table-theader'>
+								<tr style='border-bottom: 2px solid #dee2e6;text-align: center;'>
+									<th><div style="min-width: 4em;white-space: nowrap;">手動執行</div></th>
+									<th><div style="min-width: 5em;white-space: nowrap;">排程開關</div></th>
+									<th><div style="min-width: 5em;white-space: nowrap;">最後執行結果</div></th>
+									<th><div style="min-width: 5em;white-space: nowrap;">排程ID</div></th>
+									<th><div style="min-width: 5em;white-space: nowrap;">Owner</div></th>
+									<th><div style="width: 10em;white-space: nowrap;">Tags</div></th>
+									<th><div style="min-width: 5em;white-space: nowrap;">排程時間</div></th>
+									<th><div style="white-space: nowrap;">上架時間</div></th>
+								</tr>
+							</thead>
+							<tbody class='table-tbody'>
+								<tr v-for="(item, dagId, index) of DAGList" v-show="item.filterShow">
+									<!-- 手動執行按鈕 -->
+									<td>
+										<div class='btn btn-dark' v-if="item.is_paused != undefined & item.is_paused == false & item.SettingFile!=false & item.ImportFailMessage == ''"
 											@click="clickTrigerDAGRunButton(dagId)"
-										></i>
-									</div>
-									<div class='text-h-center' v-else>
-										<i class="fas fa-caret-square-right triget-btn-none mouse-pointer"></i>
-									</div> -->
-								</td>
-
-								<!-- 開關按鈕 -->
-								<td>
-									<div class="switch-btn-ground mouse-pointer" v-if="item.is_paused != undefined & item.SettingFile!=false & item.ImportFailMessage == ''"
-										@click.stop="clickDAGPauseStatusSwitch(dagId, !item.is_paused)"
-									>
-										<span class="switch-btn-item-on flex-50" :style='item.is_paused?"margin-left:-50%;":"margin-left: 0%;"'
-										>ON</span>
-										<span class="switch-btn-item-label flex-50" ></span>
-										<span class="switch-btn-item-off flex-50" >OFF</span>
-									</div>
-									<div class="switch-btn-ground mouse-pointer" v-else>
-										<span class="switch-btn-item-label flex-50" ></span>
-										<span class="switch-btn-item-none flex-50" >OFF</span>
-									</div>
-								</td>
-								<!-- Last Run Status -->
-								<td>
-									<div style='display:grid;'>
-										<div class='status-label alert-danger' v-if='item.SettingFile==false'>
-											Error
-											<div class='hover-show-window'>
-												<div class='alert alert-danger'>
-													<h5>
-														<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
-														Warning!!
-													</h5>
-													Setting 檔案遺失，請通知工程組重新編輯一份
+										>
+											Action
+										</div>
+										<div class='btn btn-not-active' v-else>
+											Action
+										</div>
+										<!-- <div class='text-h-center' v-if="item.is_paused != undefined & item.is_paused == false">
+											<i class="fas fa-caret-square-right triget-btn-active mouse-pointer"
+												@click="clickTrigerDAGRunButton(dagId)"
+											></i>
+										</div>
+										<div class='text-h-center' v-else>
+											<i class="fas fa-caret-square-right triget-btn-none mouse-pointer"></i>
+										</div> -->
+									</td>
+	
+									<!-- 開關按鈕 -->
+									<td>
+										<div class="switch-btn-ground mouse-pointer" v-if="item.is_paused != undefined & item.SettingFile!=false & item.ImportFailMessage == ''"
+											@click.stop="clickDAGPauseStatusSwitch(dagId, !item.is_paused)"
+										>
+											<span class="switch-btn-item-on flex-50" :style='item.is_paused?"margin-left:-50%;":"margin-left: 0%;"'
+											>ON</span>
+											<span class="switch-btn-item-label flex-50" ></span>
+											<span class="switch-btn-item-off flex-50" >OFF</span>
+										</div>
+										<div class="switch-btn-ground mouse-pointer" v-else>
+											<span class="switch-btn-item-label flex-50" ></span>
+											<span class="switch-btn-item-none flex-50" >OFF</span>
+										</div>
+									</td>
+									<!-- Last Run Status -->
+									<td>
+										<div style='display:grid;'>
+											<div class='status-label alert-danger' v-if='item.SettingFile==false'>
+												Error
+												<div class='hover-show-window'>
+													<div class='alert alert-danger'>
+														<h5>
+															<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
+															Warning!!
+														</h5>
+														Setting 檔案遺失，請通知工程組重新編輯一份
+													</div>
 												</div>
 											</div>
-										</div>
-										<div class='status-label alert-danger' v-else-if='item.dagPyFile==false'>
-											Error
-											<div class='hover-show-window'>
-												<div class='alert alert-danger'>
-													<h5>
-														<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
-														Error !!
-													</h5>
-													dagPyFile 檔案遺失，請通知工程組重新編輯一份
+											<div class='status-label alert-danger' v-else-if='item.dagPyFile==false'>
+												Error
+												<div class='hover-show-window'>
+													<div class='alert alert-danger'>
+														<h5>
+															<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
+															Error !!
+														</h5>
+														dagPyFile 檔案遺失，請通知工程組重新編輯一份
+													</div>
 												</div>
 											</div>
-										</div>
-
-										<div class='status-label alert-danger' v-else-if='item.ImportFailMessage != ""'>
-											Error
-											<div class='hover-show-window'>
-												<div class='alert alert-danger'>
-													<h5>
-														<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
-														Warning!!
-													</h5>
-													<div>Airflow 在讀取排程檔案時失敗，請工程組協助排除</div>
-													<div>錯誤資訊:</div>
-													<div style='white-space: initial;'>{{item.ImportFailMessage}}</div>
+	
+											<div class='status-label alert-danger' v-else-if='item.ImportFailMessage != ""'>
+												Error
+												<div class='hover-show-window'>
+													<div class='alert alert-danger'>
+														<h5>
+															<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
+															Warning!!
+														</h5>
+														<div>Airflow 在讀取排程檔案時失敗，請工程組協助排除</div>
+														<div>錯誤資訊:</div>
+														<div style='white-space: initial;'>{{item.ImportFailMessage}}</div>
+													</div>
 												</div>
 											</div>
-										</div>
-										<div class='status-label alert-warning' v-else-if='item.ImportSuccess==false & item.ImportFailMessage == ""'>
-											Loading
-											<div class='hover-show-window'>
-												<div class='alert alert-warning'>
-													<h5>
-														<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
-														Loading...
-													</h5>
-													Airflow 在讀取排程檔案中，請稍後在試
+											<div class='status-label alert-warning' v-else-if='item.ImportSuccess==false & item.ImportFailMessage == ""'>
+												Loading
+												<div class='hover-show-window'>
+													<div class='alert alert-warning'>
+														<h5>
+															<i class="fas fa-exclamation-triangle" style='margin:0px;'></i>
+															Loading...
+														</h5>
+														Airflow 在讀取排程檔案中，請稍後在試
+													</div>
 												</div>
 											</div>
-										</div>
-
-										<template v-else-if='item.ImportSuccess==true'>
-											<template v-if='item.LastRun != undefined'>
-												<div class='status-label alert-danger' v-if='item.LastRun.Result == "none"'>
-													尚無執行紀錄
-												</div>
-												<div class='status-label alert-success' v-else-if="item.LastRun.Result.state == 'success'">
-													{{item.LastRun.Result.state}}
-												</div>
-												<div class='status-label alert-danger' v-else-if="item.LastRun.Result.state == 'failed'">
-													{{item.LastRun.Result.state}}
-												</div>
-												<div class='status-label alert-warning' v-else>
-													{{item.LastRun.Result.state}}
+	
+											<template v-else-if='item.ImportSuccess==true'>
+												<template v-if='item.LastRun != undefined'>
+													<div class='status-label alert-danger' v-if='item.LastRun.Result == "none"'>
+														尚無執行紀錄
+													</div>
+													<div class='status-label alert-success' v-else-if="item.LastRun.Result.state == 'success'">
+														{{item.LastRun.Result.state}}
+													</div>
+													<div class='status-label alert-danger' v-else-if="item.LastRun.Result.state == 'failed'">
+														{{item.LastRun.Result.state}}
+													</div>
+													<div class='status-label alert-warning' v-else>
+														{{item.LastRun.Result.state}}
+													</div>
+												</template>
+												<div class='status-label alert-waiting' v-else>
+													Loading
 												</div>
 											</template>
-											<div class='status-label alert-waiting' v-else>
-												Loading
-											</div>
-										</template>
-
-									</div>
-								</td>
-								<td class='mouse-pointer link-style-font' @click="DAGInfoViewOpen(dagId)">{{dagId}}</td>
-								<td>{{item.Owner}}</td>
-								<!-- tags 標籤 -->
-								<td style="position: relative;">
-									<div class='dag-list-tag-list-ground'>
-										<div class='dag-list-tag-card mouse-pointer' 
-										v-for="tagIfo of item.tags"
-										v-if="tagIfo.name != 'buildByDAGBuilder'"
-										@click='filterAdd(tagIfo.name)'
-										>{{tagIfo.name}}</div>
-									</div>
-								</td>
-								<td style='position:relative;'>
-									<div class='schedule-string-in-list-view'>{{item.Schedule}}</div>
-								</td>
-								<td style='text-align:center;white-space: nowrap;'>{{item.UpdateDate}}</td>
-								<!-- Last 20 Run Status -->
-								<!-- <td class='relative-item'>
-									<div style='display: flex;'>
-										<div class='dagRunStateCircle color-g'>
-											<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec'
-												v-if='item.updateRunsStatistics == true'
-											></i>
-											<label v-else-if="item.RunsStatistics == undefined"> - </label>
-											<label v-else>
-												{{
-													item.RunsStatistics.success != undefined ? item.RunsStatistics.success : '0'
-												}}
-											</label>
+	
 										</div>
-										<div class='dagRunStateCircle color-y'>
-											<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec'
-												v-if='item.updateRunsStatistics == true'
-											></i>
-											<label v-else-if="item.RunsStatistics == undefined"> - </label>
-											<label v-else>
-												{{
-													item.RunsStatistics.running != undefined ? item.RunsStatistics.running : '0'
-												}}						
-											</label>
-
+									</td>
+									<td class='mouse-pointer link-style-font' @click="DAGInfoViewOpen(dagId)">{{dagId}}</td>
+									<td>{{item.Owner}}</td>
+									<!-- tags 標籤 -->
+									<td style="position: relative;">
+										<div class='dag-list-tag-list-ground'>
+											<div class='dag-list-tag-card mouse-pointer' 
+											v-for="tagIfo of item.tags"
+											v-if="tagIfo.name != 'buildByDAGBuilder'"
+											@click='filterAdd(tagIfo.name)'
+											>{{tagIfo.name}}</div>
 										</div>
-										<div class='dagRunStateCircle color-r'>
-											<i class='fas fa-3x fa-sync-alt anima-360-in-2-sec'
-												v-if='item.updateRunsStatistics == true'
-											></i>
-											<label v-else-if="item.RunsStatistics == undefined"> - </label>
-											<label v-else>
-												{{
-													item.RunsStatistics.failed != undefined ? item.RunsStatistics.failed : '0'
-												}}
-											</label>
-										</div>
-									</div>
-								</td> -->
-
-							</tr>
-						</tbody>
-					</table>
+									</td>
+									<td style='position:relative;'>
+										<div class='schedule-string-in-list-view'>{{item.Schedule}}</div>
+									</td>
+									<td style='text-align:center;white-space: nowrap;'>{{item.UpdateDate}}</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
 				</div>
 				<div class="table-card-footer">
 					<h3>beta v1.0</h3>
