@@ -18,6 +18,10 @@ import datetime
 import zipfile
 import shutil
 
+
+#########################################################################
+# Airflow 的URL、帳號、密碼請更改此處
+#########################################################################
 airflowConnecter = connectAirflow.airflowConnecter(
     'TestAccount@gmail.com',
     'password',
@@ -27,6 +31,9 @@ airflowConnecter = connectAirflow.airflowConnecter(
 S_dagsFolderPath = r'/airflowDagsFolder/dagBuilder'
 S_dagsDeletedPath = r'/deletedDag'
 S_tarFolder = r'/tarFolder'
+
+if not os.path.exists(S_dagsFolderPath):
+    os.makedirs(S_dagsFolderPath)
 if not os.path.exists(S_tarFolder):
     os.makedirs(S_tarFolder)
 if not os.path.exists(S_dagsDeletedPath):

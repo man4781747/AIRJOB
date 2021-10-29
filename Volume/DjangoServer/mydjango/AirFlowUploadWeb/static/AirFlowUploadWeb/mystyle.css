@@ -1,7 +1,16 @@
+:root {
+  --cl-title: #17a2b8;
+  --cl-red: #dc3545;
+  --cl-blue: #4597ff;
+  --cl-green: #28a745;
+  --cl-yellow: #f0b500;
+  --cl-background: #f4f6f9;
+}
+
 body{
 	font-family: 'Roboto', sans-serif;
 	/* font-size: 20px; */
-	background-color: #f4f6f9;
+	background-color: var(--cl-background);
     margin: 0;
 }
 
@@ -692,7 +701,7 @@ body{
 .btn-dark:hover {
     background-color: #374253;
     border-color: #565f6d;
-    color: #f4f6f996;
+    color: #f4f6f9;
 }
 
 .btn-right {

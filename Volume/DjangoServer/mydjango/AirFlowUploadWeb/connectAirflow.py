@@ -202,8 +202,8 @@ class airflowConnecter:
 
 if __name__ == '__main__':    
     S_airflowURL = 'http://34.80.102.147:8080'
-    S_account = 'man4781747@gmail.com'
-    S_password = 'Qoo_83367632'
+    S_account = 'TestAccount@gmail.com'
+    S_password = 'password'
     Obj_airflowConnecter = airflowConnecter(S_account, S_password,S_airflowURL)
 
 

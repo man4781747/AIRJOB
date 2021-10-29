@@ -259,6 +259,7 @@ var VueSetting = new Vue({
 		openAddNewDAGEditer(){
 			VueSetting.SetEditer({})
 			VueSetting.openDAGEditer()
+			VueSetting.GetTagsListFromServer()
 			VueSetting.DAG_ID_locker = false
 			VueSetting.lastPage = "dagListViewer"
 		},

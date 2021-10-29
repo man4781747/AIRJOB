@@ -15,3 +15,8 @@
         - https://www.maxlist.xyz/2020/06/18/flask-nginx/
     - the web client <-> the web server （ Nginx ）<-> uWSGI <-> Django
 
+# 若今天整體要重新佈署，妳會有以下參數需要修改
+1. Airflow的port
+    - docker-compose.yml
+    - Volume/pythonCode/RunAirflowServer.py
+    - Volume/DjangoServer/mydjango/AirFlowUploadWeb/views.py
