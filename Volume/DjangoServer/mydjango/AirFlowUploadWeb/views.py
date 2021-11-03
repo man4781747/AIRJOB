@@ -94,7 +94,7 @@ def SearchFolder(S_folderPath):
 
 # Create your views here.
 def test(request):
-    return JsonResponse({'AllPicDate':[1,2,3]})
+    return JsonResponse({'AllPicDate':[1,2,3,123]})
     
 def MainWeb(request):
     return render(request, 'MainHTML.html', {})

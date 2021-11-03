@@ -8,8 +8,7 @@ from . import views
 2. GetOneBoardName/ 傳送單個討論版名稱給使用者
 '''
 urlpatterns = [
-    url(r'test/', views.test),
-    url(r'mainHTML/', views.mainHTML),
+    path(r'mainHTML/', views.mainHTML),
     path(r'testHTML/<groupName>/', views.testHTML),
     path(r'testHTML/', views.Airflow_ProjectManager_HTML),
 
@@ -61,19 +60,19 @@ urlpatterns = [
     # ======= v0 API =======
     # ======================
 
-    url(r'GetImportErrorList/', views.GetImportErrorList),
-    url(r'GetDAGRunsStatistics/', views.GetDAGRunsStatistics),
-    url(r'GetAllDAGIDList/', views.GetAllDAGIDList),
-    url(r'GetDAGPauseStatus/', views.GetDAGPauseStatus),
-    url(r'uploadDAGPauseStatus/', views.uploadDAGPauseStatus),
-    url(r'MakeZipFile/', views.MakeZipFile),
-    url(r'DownloadZipFile/', views.DownloadZipFile),
-    url(r'DeleteZipFile/', views.DeleteZipFile),
-    url(r'DeleteUploadedFile/', views.DeleteUploadedFile),
-    url(r'UploadDAGPythonFile/', views.UploadDAGPythonFile),
-    url(r'GetDAGs/', views.GetDAGs_buildByDAGBuilder),
-    url(r'GetDAGRunsList/', views.GetDAGRunsList),
-    url(r'GetTaskInstances/', views.GetTaskInstances),
-    url(r'GetTaskInstanceLog/', views.GetTaskInstanceLog),
+    path(r'GetImportErrorList/', views.GetImportErrorList),
+    path(r'GetDAGRunsStatistics/', views.GetDAGRunsStatistics),
+    path(r'GetAllDAGIDList/', views.GetAllDAGIDList),
+    path(r'GetDAGPauseStatus/', views.GetDAGPauseStatus),
+    path(r'uploadDAGPauseStatus/', views.uploadDAGPauseStatus),
+    path(r'MakeZipFile/', views.MakeZipFile),
+    path(r'DownloadZipFile/', views.DownloadZipFile),
+    path(r'DeleteZipFile/', views.DeleteZipFile),
+    path(r'DeleteUploadedFile/', views.DeleteUploadedFile),
+    path(r'UploadDAGPythonFile/', views.UploadDAGPythonFile),
+    path(r'GetDAGs/', views.GetDAGs_buildByDAGBuilder),
+    path(r'GetDAGRunsList/', views.GetDAGRunsList),
+    path(r'GetTaskInstances/', views.GetTaskInstances),
+    path(r'GetTaskInstanceLog/', views.GetTaskInstanceLog),
     
 ]

@@ -181,17 +181,18 @@ Vue.component("bash-operator-item", {
 				let form = new FormData();
 				form.append('DAG_ID', this.dag_id)
 				form.append('fileName', this.post.python_name)
-				// console.log('準備檢查py檔案是否已存在')
-				// console.log('DAG id: '+this.dag_id)
-				// console.log('File name: '+this.post.python_name)
+				console.log('準備檢查py檔案是否已存在')
+				console.log('DAG id: '+this.dag_id)
+				console.log('File name: '+this.post.python_name)
 				fetch('/AirFlowUploadWeb/API/v1/'+VueSetting.projectName+'/checkIfExistsTaskPyFile/'+this.dag_id+'/', {
 					method: 'POST',
 					body: form,
 				}).then(function(response) {
+					console.log(response);
 					return response.json();
 				})
 				.then(function(myJson) {
-					// console.log(myJson);
+					console.log(myJson);
 					thisVueItem.pyFileExists = myJson['Exists']
 				});
 			}
@@ -1345,14 +1346,13 @@ END = DummyOperator(
 		// 負責上傳單個有Task用的py檔案至Server
 		uploadTaskPyFilesToServer(D_fileInfo){
 			if (D_fileInfo['UploadAnyway']==false & D_fileInfo['VueCustomerItem'].pyFileExists){
-				// console.log('已存在 不重新上傳')
 				return null
 			}
 			var D_fileInfo = D_fileInfo
-			// console.log('準備上傳Task用Py檔案')
-			// console.log('DAG ID : '+ this.dagIdValue)
-			// console.log('檔案名稱: '+ D_fileInfo['file'].name)
-			// console.log('檔案資訊: ', D_fileInfo['file'])
+			console.log('準備上傳Task用Py檔案')
+			console.log('DAG ID : '+ this.dagIdValue)
+			console.log('檔案名稱: '+ D_fileInfo['file'].name)
+			console.log('檔案資訊: ', D_fileInfo['file'])
 
 			D_fileInfo['uploadStatus'] = 'Uploading'
 			D_fileInfo['uploadMessage'] = 'Uploading...'
