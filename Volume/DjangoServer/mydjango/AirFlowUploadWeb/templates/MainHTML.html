@@ -1347,7 +1347,7 @@
 										<h3 class='table-card-title flex-80' style='display: flex !important;'>{{DAGDetailOpen}}</h3>
 										<div style='display:flex;'>
 											<i class="far fa-trash-alt reload-btn btn btn-info" @click="clickDeleteDAGButton()"></i>
-											<a :href="'http://34.80.102.147:8080/tree?dag_id='+DAGDetailOpen" target="_blank"><i class="fas fa-globe reload-btn btn btn-info"></i></a>
+											<a :href="'http://88.248.13.77:8890/tree?dag_id='+DAGDetailOpen" target="_blank"><i class="fas fa-globe reload-btn btn btn-info"></i></a>
 											<i class="far fa-edit reload-btn btn btn-info" @click="openDAGEditerWithDAGSettingInfo()"></i>
 											<!-- <button class='btn btn-block btn-default btn-right flex-10' @click="openDAGEditerWithDAGSettingInfo()"> Edit </button> -->
 										</div>
@@ -1593,7 +1593,7 @@
 									<template v-for="(runsInfo, index) of DAGList[DAGDetailOpen].dagRuns.total">
 										<tr>
 											<td><a 
-												:href="'http://34.80.102.147:8080/graph?dag_id='+DAGDetailOpen+'&start_date='+runsInfo.start_date"
+												:href="'http://88.248.13.77:8890/graph?dag_id='+DAGDetailOpen+'&start_date='+runsInfo.start_date"
 												target='_blank'
 											>{{index+1}}</a></td>
 											<td>{{runsInfo.state}}</td>
