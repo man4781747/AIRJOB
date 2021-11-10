@@ -937,6 +937,7 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
 
+
 S_thisFilePath = os.path.split(os.path.realpath(__file__))[0]
 import sys
 sys.path.append(os.path.join(S_thisFilePath, '..', '..', '..', '..'))
@@ -994,7 +995,7 @@ END = DummyOperator(
             if D_taskInfo['type'] == 'BashOperator':
                 S_taskStr = "{task_id} = BashOperator(\n    task_id='{task_id}',\n    bash_command=getBashCommandString('{python_name}'),\n    dag=dag,\n    trigger_rule=TriggerRule.ALL_DONE\n    )\n\t\n"
                 S_pyContent += S_taskStr.format(task_id=D_taskInfo["tesk_id"],python_name=D_taskInfo["python_name"])
-                L_taskList.append(D_taskInfo["tesk_id"])
+                
             elif D_taskInfo['type'] == 'PythonOperator':
                 print(D_taskInfo)
                 S_taskStr = "{task_id} = PythonOperator(\n    task_id='{task_id}',\n    python_callable=triggerJupyter.run,\n    op_kwargs={op_kwargs},\n    dag=dag,\n    trigger_rule=TriggerRule.ALL_DONE\n    )\n\t\n"
@@ -1003,7 +1004,7 @@ END = DummyOperator(
                     jupyter_token = D_taskInfo.get("jupyter_token", ""),
                 ) + "}"
                 S_pyContent += S_taskStr.format(task_id=D_taskInfo["tesk_id"],op_kwargs=op_kwargs)
-
+            L_taskList.append(D_taskInfo["tesk_id"])
         S_pyContent += ' >> '.join(['START'] + L_taskList + ['END'])
 
         f.write(S_pyContent)

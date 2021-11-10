@@ -934,12 +934,12 @@
 									或將csv檔案拉入此區域來載入設定，也可
 									<button @click="$refs.inputDAGsettingCSV.click()">點擊此處</button>
 									導入CSV檔案 -->
-									<button class='btn avtive-btn' v-on:click="BuildNewDAGItem('PythonOperator', null, '')">加入流程</button>
+									<button class='btn avtive-btn' v-on:click="BuildNewDAGItem('PythonOperator', '')">加入流程</button>
 								</div>
 	
 	
 								<div class="ToolBox" v-show="dag_item_build_index.length!=0">
-									<button class='btn avtive-btn' v-on:click="BuildNewDAGItem('PythonOperator', null, '')">加入流程</button>
+									<button class='btn avtive-btn' v-on:click="BuildNewDAGItem('PythonOperator', '')">加入流程</button>
 									<!-- <button @click="$refs.inputDAGsettingCSV.click()">載入csv檔案</button>
 									<button @click="clearAllDAGStaegs()">清空所有</button>
 									<button @click="$refs.OutputDAGStagesSettingCSV_A.click()">匯出設定檔</button> -->

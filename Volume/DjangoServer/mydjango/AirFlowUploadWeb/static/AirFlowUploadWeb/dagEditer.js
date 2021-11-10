@@ -1032,12 +1032,28 @@ END = DummyOperator(
 			var taskIdSet = new Set()
 			for (taskUuid of Object.keys(this.dag_item_wait_upload_list)){
 				// console.log(this.dag_item_build_list[taskUuid].python_name)
-				// if (!(this.dag_item_build_list[taskUuid].python_name)){
-				// 	checkList.push({
-				// 		'dom_id': this.dag_item_wait_upload_list[taskUuid]['dom_id'],
-				// 		'failMessage' : "流程ID: "+this.dag_item_build_list[taskUuid].tesk_id+ "沒有上傳檔案"
-				// 	})	
-				// }
+				if (this.dag_item_build_list[taskUuid].type=='BashOperator'){
+					if (!(this.dag_item_build_list[taskUuid].python_name)){
+						checkList.push({
+							'dom_id': this.dag_item_wait_upload_list[taskUuid]['dom_id'],
+							'failMessage' : "流程ID: "+this.dag_item_build_list[taskUuid].tesk_id+ "沒有上傳檔案"
+						})	
+					}
+				} else if (this.dag_item_build_list[taskUuid].type=='PythonOperator'){
+					if (!(this.dag_item_build_list[taskUuid].jupyter_url)){
+						checkList.push({
+							'dom_id': this.dag_item_wait_upload_list[taskUuid]['dom_id'],
+							'failMessage' : "流程ID: "+this.dag_item_build_list[taskUuid].tesk_id+ "沒有檔案路徑"
+						})	
+					}
+
+					if (!(this.dag_item_build_list[taskUuid].jupyter_token)){
+						checkList.push({
+							'dom_id': this.dag_item_wait_upload_list[taskUuid]['dom_id'],
+							'failMessage' : "流程ID: "+this.dag_item_build_list[taskUuid].tesk_id+ "沒有Token數值"
+						})	
+					}
+				}
 
 				if (this.dag_item_build_list[taskUuid].tesk_id.trim()==""){
 					checkList.push({
@@ -1219,7 +1235,6 @@ END = DummyOperator(
 					S_tesk_id = "BashOperator_Default_"+BashOperator_Default_Index
 				}
 				
-				console.log(S_jupyter_token)
 				Vue.set(
 					this.dag_item_build_list,
 					uuid,

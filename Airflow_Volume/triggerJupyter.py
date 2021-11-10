@@ -5,6 +5,7 @@ import uuid
 import traceback
 from websocket import create_connection
 import re
+from airflow.exceptions import AirflowFailException
 
 def send_execute_request(code):
     msg_type = 'execute_request';
@@ -25,38 +26,49 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
     if not Re_jupyterNotebookUrl:
         print('URL Format 錯誤')
         print(S_jupyterNotebookUrl)
-        return None
+        raise AirflowFailException("URL 格式錯誤，找不到檔案")
     
-
-    notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path') 
-    base = Re_jupyterNotebookUrl.group('jupyter_url')
-    headers = {'Authorization': S_jupyterToken}
-    S_ip_port = base.split('//')[-1]
-    print(S_ip_port)
-    
-    url = base + '/api/sessions' + "?token={}".format(S_jupyterToken)
-
-    params = '{"path":\"%s\","type":"notebook","name":"","kernel":{"id":null,"name":"python3"}}' % notebook_path
-    response = requests.post(url, headers=headers, data=params)
-    session = json.loads(response.text)
-    kernel = session["kernel"]
-
-
-    # 讀取notebook檔案，並獲取每個Cell裡的Code
-    url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
-    response = requests.get(url,headers=headers)
-    file = json.loads(response.text)
-    code = [ c['source'] for c in file['content']['cells'] if len(c['source'])>0 ]    
+    try:
+        notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path') 
+        base = Re_jupyterNotebookUrl.group('jupyter_url')
+        headers = {'Authorization': S_jupyterToken}
+        S_ip_port = base.split('//')[-1]
         
-    # 開始啟動 WebSocket channels (request/reply)
-    S_ws_url = "ws://{}/api/kernels/".format(S_ip_port)+kernel["id"]+"/channels?session_id"+session["id"] + "&token={}".format(S_jupyterToken)
-    ws = create_connection(
-        S_ws_url, 
-        header=headers)
-    for c in code:
-        ws.send(json.dumps(send_execute_request(c)))
-        
+        url = base + '/api/sessions' + "?token={}".format(S_jupyterToken)
+
+        params = '{"path":\"%s\","type":"notebook","name":"","kernel":{"id":null,"name":"python3"}}' % notebook_path
+        response = requests.post(url, headers=headers, data=params)
+        session = json.loads(response.text)
+        kernel = session["kernel"]
+    except Exception as e:
+        raise AirflowFailException("登入Jupyter失敗，請確認Token以及URL提供正確")
+
+    try:
+        # 讀取notebook檔案，並獲取每個Cell裡的Code
+        url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
+        response = requests.get(url,headers=headers)
+        file = json.loads(response.text)
+        code = [ c['source'] for c in file['content']['cells'] if len(c['source'])>0 ]    
+    except Exception as e:
+        raise AirflowFailException("獲得NoteBook內容失敗，請確認Token以及URL提供正確")
+
+    try:
+        # 開始啟動 WebSocket channels (request/reply)
+        S_ws_url = "ws://{}/api/kernels/".format(S_ip_port)+kernel["id"]+"/channels?session_id"+session["id"] + "&token={}".format(S_jupyterToken)
+        ws = create_connection(
+            S_ws_url, 
+            header=headers)
+        for c in code:
+            ws.send(json.dumps(send_execute_request(c)))
+    except Exception as e:
+        try:
+            ws.close()
+        except:
+            pass
+        raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
+
     # 我們只拿Code執行完的訊息結果，其他訊息將被忽略
+    B_hasFail = False
     for i in range(0, len(code)+1):
         try:
             msg_type = ''
@@ -73,7 +85,9 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                 elif msg_type == "display_data":
                     print(rsp["content"]["data"]["image/png"])
                 elif msg_type == "error":
+                    print('發現錯誤')
                     print(rsp["content"]["traceback"])
+                    B_hasFail = True
                 elif msg_type == "status" and rsp["content"]["execution_state"] == "idle":
                     break
         except:
@@ -81,6 +95,11 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                 ws.close()
                 
     ws.close()
+
+    if B_hasFail:
+        raise AirflowFailException("Task Fail!")
+    return B_hasFail
+
     
 if __name__=='__main__':
     run("http://35.194.167.48:8001/notebooks/TestFloder/TestPyFile.ipynb","password")
