@@ -48,7 +48,7 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
         url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
         response = requests.get(url,headers=headers)
         file = json.loads(response.text)
-        code = [ c['source'] for c in file['content']['cells'] if len(c['source'])>0 ]    
+        code = [ [c['source'],index] for index,c in enumerate(file['content']['cells']) if len(c['source'])>0 ]   
     except Exception as e:
         raise AirflowFailException("獲得NoteBook內容失敗，請確認Token以及URL提供正確")
 
@@ -58,8 +58,8 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
         ws = create_connection(
             S_ws_url, 
             header=headers)
-        for c in code:
-            ws.send(json.dumps(send_execute_request(c)))
+        for L_c in code:
+            ws.send(json.dumps(send_execute_request(L_c[0])))
     except Exception as e:
         try:
             ws.close()
@@ -77,6 +77,18 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                 msg_type = rsp["msg_type"]
                 if msg_type == "stream":
                     print(rsp["content"]["text"])
+                    file['content']['cells'][code[i-1][1]]['outputs'] = [
+                        {
+                        'name': 'stdout', 
+                        'output_type': 'stream', 
+                        'text': "===== 以下由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
+                        },
+                        {
+                        'name': rsp["content"]["name"], 
+                        'output_type': 'stream', 
+                        'text': rsp["content"]["text"]
+                        },
+                    ]
                 elif msg_type == "execute_result":
                     if "image/png" in (rsp["content"]["data"].keys()):
                         print(rsp["content"]["data"]["image/png"])
@@ -84,10 +96,35 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                         print(rsp["content"]["data"]["text/plain"])
                 elif msg_type == "display_data":
                     print(rsp["content"]["data"]["image/png"])
+                    file['content']['cells'][code[i-1][1]]['outputs'] = [                        
+                        {
+                        'name': 'stdout', 
+                        'output_type': 'stream', 
+                        'text': "===== 以下由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
+                        },
+                        {
+                        "output_type": "display_data",
+                        "data" : rsp["content"]['data'],
+                        "metadata": rsp["content"]['metadata']
+                        }
+                    ]
                 elif msg_type == "error":
-                    print('發現錯誤')
                     print(rsp["content"]["traceback"])
                     B_hasFail = True
+                    file['content']['cells'][code[i-1][1]]['outputs'] = [                        
+                        {
+                        'name': 'stdout', 
+                        'output_type': 'stream', 
+                        'text': "===== 以下由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
+                        },
+                        {
+                        "output_type": "error",
+                        "ename" : rsp["content"]['ename'],
+                        "evalue": rsp["content"]['evalue'],
+                        "traceback": rsp["content"]['traceback'],
+                        }
+                    ]
+
                 elif msg_type == "status" and rsp["content"]["execution_state"] == "idle":
                     break
         except:
@@ -95,6 +132,15 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                 ws.close()
                 
     ws.close()
+
+    new = {
+        'type': "notebook",
+        'content':file['content'],
+    }
+
+    url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
+    headers["Content-Type"] =  "application/json"
+    response = requests.put(url,headers=headers,data=json.dumps(new))
 
     if B_hasFail:
         raise AirflowFailException("Task Fail!")
