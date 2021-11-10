@@ -1,13 +1,15 @@
 sudo docker build -t airjob-server .
 
+sudo docker run --name arijob-test-server-container -p 8890:8000 -v /home/man4781747/project/AIRJOB/Volume/DjangoServer/mydjango:/code airjob-server-test 
+
+sudo docker run --name arijob-server-container -p 8890:8000 -v /home/man4781747/project/AIRJOB/Volume/DjangoServer/mydjango:/code airjob-server 
+
+
 sudo docker run \
 --name arijob-server-container\
--p 8890:8080 \
---mount type=bind,source=./Volume/DjangoServer/mydjango,target=/code\
---mount type=bind,source=./Airflow_Volume/dags:/airflowDagsFolder\
---mount type=bind,source=./Airflow_Volume/deleteDags:/deletedDag\
---mount type=bind,source=./Airflow_Volume/tarFolder:/tarFolder\
+-p 8890:8000 \
+-v ./Volume/DjangoServer/mydjango:/code \
+-v ./Airflow_Volume/dags:/airflowDagsFolder \
+-v ./Airflow_Volume/deleteDags:/deletedDag \
+-v ./Airflow_Volume/tarFolder:/tarFolder \
 airjob-server  
-
-sudo docker run -p 8890:8000 --mount type=bind,source=/home/man4781747/project/AIRJOB/Volume/DjangoServer/mydjango,target=/code --name arijob-server-container airjob-server 
-
