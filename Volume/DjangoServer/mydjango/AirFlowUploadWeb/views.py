@@ -23,9 +23,9 @@ import shutil
 # Airflow 的URL、帳號、密碼請更改此處
 #########################################################################
 airflowConnecter = connectAirflow.airflowConnecter(
-    'TestAccount@gmail.com',
-    'password',
-    'http://airflow:8080'
+    'admin',
+    'admin',
+    'http://88.248.13.77:8890'
 )
 
 S_dagsFolderPath = r'/airflowDagsFolder/dagBuilder'
