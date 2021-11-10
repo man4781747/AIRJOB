@@ -6,7 +6,8 @@ services:
         build: ./DockerFiles/DjangoServer
         ports:
             - 8000:8000
-        command: sudo sh runServerBash.sh
+        # command: sudo sh runServerBash.sh
+        command: sudo python manage.py runserver 0.0.0.0:8000
         volumes:
             - ./Volume/DjangoServer/mydjango:/code
             - ./Airflow_Volume/dags:/airflowDagsFolder

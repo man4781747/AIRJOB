@@ -934,12 +934,12 @@
 									或將csv檔案拉入此區域來載入設定，也可
 									<button @click="$refs.inputDAGsettingCSV.click()">點擊此處</button>
 									導入CSV檔案 -->
-									<button class='btn avtive-btn' v-on:click="BuildNewDAGItem('BashOperator', null, '')">加入流程</button>
+									<button class='btn avtive-btn' v-on:click="BuildNewDAGItem('PythonOperator', null, '')">加入流程</button>
 								</div>
 	
 	
 								<div class="ToolBox" v-show="dag_item_build_index.length!=0">
-									<button class='btn avtive-btn' v-on:click="BuildNewDAGItem('BashOperator', null, '')">加入流程</button>
+									<button class='btn avtive-btn' v-on:click="BuildNewDAGItem('PythonOperator', null, '')">加入流程</button>
 									<!-- <button @click="$refs.inputDAGsettingCSV.click()">載入csv檔案</button>
 									<button @click="clearAllDAGStaegs()">清空所有</button>
 									<button @click="$refs.OutputDAGStagesSettingCSV_A.click()">匯出設定檔</button> -->
@@ -973,16 +973,18 @@
 												@item-up="item_up"
 												@item-down="item_down"
 											></bash-operator-item>
+											<python-operator-item 
+												v-if="dag_item_build_list[keyChose].type=='PythonOperator'"
+												v-bind:post="dag_item_build_list[keyChose]"
+												v-bind:now_list="dag_item_build_index"
+												v-bind:uuid_key="keyChose"
+												v-bind:uploaditem="dag_item_wait_upload_list"
+												v-bind:dag_id="dagIdValue"
+												@delete-item="DelDAGItemByUuid"
+												@item-up="item_up"
+												@item-down="item_down"
+											></python-operator-item>
 											<!-- 'PythonOperator' 以及 'RunPythonFile' 目前已停用，留下來當記錄 -->
-											<!-- <python-operator-item -->
-												<!-- v-else-if="dag_item_build_list[keyChose].type=='PythonOperator'" -->
-												<!-- v-bind:post="dag_item_build_list[keyChose]" -->
-												<!-- v-bind:index="index" -->
-												<!-- v-bind:max_index="dag_item_build_index.length-1" -->
-												<!-- @delete-item="DelDAGItemByUuid" -->
-												<!-- @item-up="item_up" -->
-												<!-- @item-down="item_down" -->
-											<!-- ></python-operator-item> -->
 											<!-- <run-python-file-item -->
 												<!-- v-else-if="dag_item_build_list[keyChose].type=='RunPythonFile'" -->
 												<!-- v-bind:post="dag_item_build_list[keyChose]" -->
@@ -1444,31 +1446,61 @@
 																	</i>
 																</div>
 																<div class="dag-item table-card">
-																	<div class="table-card-header color-lb" style='display:flex;padding: 0px 1rem;'>
-																		<div class='flex-80' style='color:#fff;font-size: 1rem;line-height: 2rem;height: 2rem;'>
-																			{{TaskSettingItem.tesk_id}}
+																	<div v-if="TaskSettingItem.type=='BashOperator'">
+																		<div class="table-card-header color-lb" style='display:flex;padding: 0px 1rem;'>
+																			<div class='flex-80' style='color:#fff;font-size: 1rem;line-height: 2rem;height: 2rem;'>
+																				BashOperator
+																			</div>
+	
+																			<div class='flex-10'>
+																				<button class="dag-toolbox-btn text-v-center text-h-center mouse-pointer" @click="TaskSettingItem.ifOpen =! TaskSettingItem.ifOpen" style='float: right;'>
+																					<i :class='TaskSettingItem.ifOpen ? "fas fa-minus":"fas fa-plus"'></i>
+																				</button>
+																			</div>
 																		</div>
-
-																		<div class='flex-10'>
-																			<button class="dag-toolbox-btn text-v-center text-h-center mouse-pointer" @click="TaskSettingItem.ifOpen =! TaskSettingItem.ifOpen" style='float: right;'>
-																				<i :class='TaskSettingItem.ifOpen ? "fas fa-minus":"fas fa-plus"'></i>
-																			</button>
+																		<div class="table-card-body task-body" :style='TaskSettingItem.ifOpen?"":"max-height: 0px;"'>
+																			<div  class="dag-item-label">
+																				<label class="input_area_label">流程 ID:</label>
+																				<input v-model="TaskSettingItem.tesk_id" class='disable-input' placeholder="請輸入" disabled>
+																			</div>
+																			<div class="dag-item-label">
+																				<label class="input_area_label">執行的.py檔案:</label>
+																				<input v-model="TaskSettingItem.python_name" class='disable-input' placeholder="請輸入" disabled>
+																			</div>
+																			<div  class="dag-item-label" v-if='false'>
+																				<label class="input_area_label">parameters:</label>
+																				<input v-model="TaskSettingItem.bash_command" class='disable-input' placeholder="(無)" disabled>
+																			</div>
+														
 																		</div>
 																	</div>
-																	<div class="table-card-body task-body" :style='TaskSettingItem.ifOpen?"":"max-height: 0px;"'>
-																		<div  class="dag-item-label">
-																			<label class="input_area_label">流程 ID:</label>
-																			<input v-model="TaskSettingItem.tesk_id" class='disable-input' placeholder="請輸入" disabled>
+
+																	<div v-else-if="TaskSettingItem.type=='PythonOperator'">
+																		<div class="table-card-header color-lb" style='display:flex;padding: 0px 1rem;'>
+																			<div class='flex-80' style='color:#fff;font-size: 1rem;line-height: 2rem;height: 2rem;'>
+																				PythonOperator
+																			</div>
+	
+																			<div class='flex-10'>
+																				<button class="dag-toolbox-btn text-v-center text-h-center mouse-pointer" @click="TaskSettingItem.ifOpen =! TaskSettingItem.ifOpen" style='float: right;'>
+																					<i :class='TaskSettingItem.ifOpen ? "fas fa-minus":"fas fa-plus"'></i>
+																				</button>
+																			</div>
 																		</div>
-																		<div class="dag-item-label">
-																			<label class="input_area_label">執行的.py檔案:</label>
-																			<input v-model="TaskSettingItem.python_name" class='disable-input' placeholder="請輸入" disabled>
+																		<div class="table-card-body task-body" :style='TaskSettingItem.ifOpen?"":"max-height: 0px;"'>
+																			<div  class="dag-item-label">
+																				<label class="input_area_label">流程 ID:</label>
+																				<input v-model="TaskSettingItem.tesk_id" class='disable-input' placeholder="無內容" disabled>
+																			</div>
+																			<div class="dag-item-label">
+																				<label class="input_area_label">Jupyter檔案網址:</label>
+																				<input v-model="TaskSettingItem.jupyter_url" class='disable-input' placeholder="無內容" disabled>
+																			</div>
+																			<div class="dag-item-label">
+																				<label class="input_area_label">Jupyter Token:</label>
+																				<input v-model="TaskSettingItem.jupyter_token" class='disable-input' placeholder="無內容" disabled>
+																			</div>
 																		</div>
-																		<div  class="dag-item-label" v-if='false'>
-																			<label class="input_area_label">parameters:</label>
-																			<input v-model="TaskSettingItem.bash_command" class='disable-input' placeholder="(無)" disabled>
-																		</div>
-													
 																	</div>
 																</div>
 															</div>
