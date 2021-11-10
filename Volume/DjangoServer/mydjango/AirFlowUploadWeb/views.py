@@ -688,7 +688,7 @@ def uploadNewDAGSettingInfo_v1(request, groupName):
             # 以下部分為強制刪除資料夾內沒在設定檔內設定要執行的所有檔案
             Set_fileList = set()
             for uuid in D_dagSetting.get('TaskSettingList',{}):
-                Set_fileList.add(D_dagSetting['TaskSettingList'][uuid]['python_name'])
+                Set_fileList.add(D_dagSetting['TaskSettingList'][uuid].get('python_name',''))
             S_uploadedFileFolder = os.path.join(S_dagFolder, 'UploadedFile') 
             if os.path.exists(S_uploadedFileFolder):
                 for fileName in os.listdir(S_uploadedFileFolder):
@@ -934,7 +934,14 @@ from airflow.utils import timezone
 from airflow import DAG
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.python_operator import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
+
+
+S_thisFilePath = os.path.split(os.path.realpath(__file__))[0]
+import sys
+sys.path.append(os.path.join(S_thisFilePath, '..', '..', '..', '..'))
+import triggerJupyter
 
 now = timezone.utcnow
 local_tz = pendulum.timezone('Asia/Taipei')
@@ -981,14 +988,23 @@ END = DummyOperator(
 
 '''
         L_taskList = []
+        print(D_dagSetting["TaskSettingIndex"])
         for S_taskKeyChose in D_dagSetting["TaskSettingIndex"]:
             D_taskInfo = D_dagSetting['TaskSettingList'][S_taskKeyChose]
             print(D_taskInfo)
             if D_taskInfo['type'] == 'BashOperator':
                 S_taskStr = "{task_id} = BashOperator(\n    task_id='{task_id}',\n    bash_command=getBashCommandString('{python_name}'),\n    dag=dag,\n    trigger_rule=TriggerRule.ALL_DONE\n    )\n\t\n"
                 S_pyContent += S_taskStr.format(task_id=D_taskInfo["tesk_id"],python_name=D_taskInfo["python_name"])
-                L_taskList.append(D_taskInfo["tesk_id"])
-
+                
+            elif D_taskInfo['type'] == 'PythonOperator':
+                print(D_taskInfo)
+                S_taskStr = "{task_id} = PythonOperator(\n    task_id='{task_id}',\n    python_callable=triggerJupyter.run,\n    op_kwargs={op_kwargs},\n    dag=dag,\n    trigger_rule=TriggerRule.ALL_DONE\n    )\n\t\n"
+                op_kwargs = "{"+"'S_jupyterNotebookUrl':'{jupyter_notebook_url}', 'S_jupyterToken':'{jupyter_token}'".format(
+                    jupyter_notebook_url = D_taskInfo.get("jupyter_url", ""),
+                    jupyter_token = D_taskInfo.get("jupyter_token", ""),
+                ) + "}"
+                S_pyContent += S_taskStr.format(task_id=D_taskInfo["tesk_id"],op_kwargs=op_kwargs)
+            L_taskList.append(D_taskInfo["tesk_id"])
         S_pyContent += ' >> '.join(['START'] + L_taskList + ['END'])
 
         f.write(S_pyContent)

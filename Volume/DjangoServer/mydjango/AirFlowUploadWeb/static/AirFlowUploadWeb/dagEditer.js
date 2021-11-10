@@ -72,8 +72,6 @@ Vue.component("bash-operator-item", {
 						<button class="dag-toolbox-btn text-v-center text-h-center mouse-pointer" @click="post.ifOpen =! post.ifOpen" style='float: right;'>
 							<i :class='post.ifOpen ? "fas fa-minus":"fas fa-plus"'></i>
 						</button>
-
-						
 					</div>
 				</div>
 				<div class="table-card-body task-body" :style='post.ifOpen?"":"max-height: 0px;"'>
@@ -223,6 +221,104 @@ Vue.component("bash-operator-item", {
 		this.uploaditem[this.uuid_key]['VueCustomerItem'] = this
 		this.uploaditem[this.uuid_key]['fileName'] = this.post.python_name
 		this.checkIfPyFileExists()
+	},
+})
+
+// python-operator-item 模組設定
+Vue.component("python-operator-item", {
+    template:`
+		<div :id="divId" class='dag-task-card'>
+			<div class='dag-item-left-icon-background text-h-center' >
+				<i class="fas fa-circle">
+					<div class='task-type-word'>{{index}}</div>
+				</i>
+			</div>
+			<div class="dag-item table-card">
+				<div class="table-card-header color-lb" v-if="disable!=true" style='display:flex;'>
+					<div class='flex-10'>
+						<button 
+							class="dag-toolbox-btn text-v-center text-h-center mouse-pointer" 
+							@click="$emit('item-up', index)" 
+							v-show="index != 1">
+							<i class="fas fa-caret-up"></i>
+						</button>
+						<button class="dag-toolbox-btn text-v-center text-h-center mouse-pointer" @click="$emit('item-down', index)" v-show="index != max_index">
+							<i class="fas fa-caret-down"></i>
+						</button>
+					</div>
+					<div class='flex-80 text-v-center' style='color:#fff'>
+						PythonOperator
+					</div>
+					<div class='flex-10'>
+						<button class="dag-toolbox-btn text-v-center text-h-center mouse-pointer" @click="$emit('delete-item', post.uuid)" style='float: right;'>
+							<i class="fas fa-times"></i>
+						</button>
+						<button class="dag-toolbox-btn text-v-center text-h-center mouse-pointer" @click="post.ifOpen =! post.ifOpen" style='float: right;'>
+							<i :class='post.ifOpen ? "fas fa-minus":"fas fa-plus"'></i>
+						</button>
+					</div>
+				</div>
+				<div class="table-card-body task-body" :style='post.ifOpen?"":"max-height: 0px;"'>
+					<div  class="dag-item-label">
+						<label class="input_area_label">流程 ID:</label>
+						<input v-on:input="dag_code" v-model="post.tesk_id" placeholder="請輸入" :disabled="disable">
+					</div>
+					<div class="dag-item-label">
+						<label class="input_area_label">Jupyter檔案網址:</label>
+						<input v-on:input="dag_code" v-model="post.jupyter_url" placeholder="請輸入" :disabled="disable">
+					</div>
+					<div class="dag-item-label">
+						<label class="input_area_label">Jupyter Token:</label>
+						<input v-on:input="dag_code" v-model="post.jupyter_token" placeholder="請輸入" :disabled="disable">
+					</div>
+
+				</div>
+				<div class="table-card-footer" v-if='false'>
+				</div>
+			</div>
+		</div>
+
+    `,
+	data: function(){
+		return {
+			detailOpen: false,
+			pyFileExists: null,
+			NewFile: false,
+		}
+	},
+    props: ['post', 'disable', 'now_list', 'uuid_key', 'uploaditem', 'dag_id'],
+    methods: {
+        dag_code: function(){
+			this.RemoveOtherWord()
+		},
+
+		RemoveOtherWord(){
+			this.post.tesk_id = this.post.tesk_id.replaceAll(/\W/gm,'_')
+		},
+	},
+	computed: {
+		divId: function(){
+			this.uploaditem[this.uuid_key]['dom_id'] = 'editer-input-task-card-'+this.uuid_key
+			return 'editer-input-task-card-'+this.uuid_key
+		},
+		index: function(){
+			return this.now_list.indexOf(this.uuid_key)+1
+		},
+		max_index: function(){
+			return this.now_list.length
+		},
+		fileInputRef : function(){
+			return "fileInput__"+this.uuid_key
+		},
+
+		UploadAnywayRef: function(){
+			return "UploadAnyway__"+this.uuid_key
+		},
+	},
+	created: function() { 
+		this.dag_code()
+		this.uploaditem[this.uuid_key]['VueCustomerItem'] = this
+		this.uploaditem[this.uuid_key]['fileName'] = this.post.python_name
 	},
 })
 
@@ -936,11 +1032,27 @@ END = DummyOperator(
 			var taskIdSet = new Set()
 			for (taskUuid of Object.keys(this.dag_item_wait_upload_list)){
 				// console.log(this.dag_item_build_list[taskUuid].python_name)
-				if (!(this.dag_item_build_list[taskUuid].python_name)){
-					checkList.push({
-						'dom_id': this.dag_item_wait_upload_list[taskUuid]['dom_id'],
-						'failMessage' : "流程ID: "+this.dag_item_build_list[taskUuid].tesk_id+ "沒有上傳檔案"
-					})	
+				if (this.dag_item_build_list[taskUuid].type=='BashOperator'){
+					if (!(this.dag_item_build_list[taskUuid].python_name)){
+						checkList.push({
+							'dom_id': this.dag_item_wait_upload_list[taskUuid]['dom_id'],
+							'failMessage' : "流程ID: "+this.dag_item_build_list[taskUuid].tesk_id+ "沒有上傳檔案"
+						})	
+					}
+				} else if (this.dag_item_build_list[taskUuid].type=='PythonOperator'){
+					if (!(this.dag_item_build_list[taskUuid].jupyter_url)){
+						checkList.push({
+							'dom_id': this.dag_item_wait_upload_list[taskUuid]['dom_id'],
+							'failMessage' : "流程ID: "+this.dag_item_build_list[taskUuid].tesk_id+ "沒有檔案路徑"
+						})	
+					}
+
+					if (!(this.dag_item_build_list[taskUuid].jupyter_token)){
+						checkList.push({
+							'dom_id': this.dag_item_wait_upload_list[taskUuid]['dom_id'],
+							'failMessage' : "流程ID: "+this.dag_item_build_list[taskUuid].tesk_id+ "沒有Token數值"
+						})	
+					}
 				}
 
 				if (this.dag_item_build_list[taskUuid].tesk_id.trim()==""){
@@ -954,6 +1066,7 @@ END = DummyOperator(
 						'failMessage' : "流程ID: "+this.dag_item_build_list[taskUuid].tesk_id+ "發現重複的ID，請更換"
 					})	
 				}
+
 				taskIdSet.add(this.dag_item_build_list[taskUuid].tesk_id)
 			}
 			return checkList	
@@ -1066,7 +1179,9 @@ END = DummyOperator(
 
 		},
 
-		BuildNewDAGItem: function(S_itemName, S_tesk_id, S_python_name="", S_bash_command, uuidInput=null) {
+		BuildNewDAGItem: function(S_itemName, S_tesk_id, uuidInput=null,
+				{S_python_name="",S_bash_command="",S_jupyter_url="",S_jupyter_token=""} = {}
+		) {
 			// console.log(S_itemName)
 			if (S_itemName == "BashOperator"){
 				if (uuidInput==null){
@@ -1088,6 +1203,48 @@ END = DummyOperator(
 						tesk_id: S_tesk_id,
 						python_name: S_python_name,
 						bash_command : S_bash_command,
+						
+						ifOpen: true,
+					}
+				)
+				this.dag_item_build_index.push(uuid)
+				Vue.set(
+					this.dag_item_wait_upload_list,
+					uuid,
+					{
+						'file': null,
+						'uploadStatus': 'Wait',
+						'uploadMessage': 'Waiting for the DAG file to be created successfully',
+						'uploadStatusStyleClass': 'alert-warning',
+						'UploadAnyway': false,
+						'VueCustomerItem': null,
+
+					}
+				)
+
+				BashOperator_Default_Index += 1
+			}
+
+			else if (S_itemName == "PythonOperator"){
+				if (uuidInput==null){
+					var uuid = _uuid()
+				} else {
+					var uuid = uuidInput
+				}
+				if (S_tesk_id == null){
+					S_tesk_id = "BashOperator_Default_"+BashOperator_Default_Index
+				}
+				
+				Vue.set(
+					this.dag_item_build_list,
+					uuid,
+					{
+						uuid: uuid,
+						type: "PythonOperator",
+						tesk_id: S_tesk_id,
+						jupyter_url: S_jupyter_url,
+						jupyter_token : S_jupyter_token,
+						
 						ifOpen: true,
 					}
 				)
@@ -1157,29 +1314,28 @@ END = DummyOperator(
 			this.D_cronDataSetting[S_cronType].windowShow = !this.D_cronDataSetting[S_cronType].windowShow
 		},
 		
-		GetDAGsettingCSV(file){
-			// console.log(file);
-			if (this.dag_item_build_index.length != 0){
-				var ifDelAllDAGStages = confirm('要清空現有的 Stages 嗎?');
-				if (ifDelAllDAGStages) {
-					this.clearAllDAGStaegs()
-				} else {
-				}
-			}
+		// GetDAGsettingCSV(file){
+		// 	if (this.dag_item_build_index.length != 0){
+		// 		var ifDelAllDAGStages = confirm('要清空現有的 Stages 嗎?');
+		// 		if (ifDelAllDAGStages) {
+		// 			this.clearAllDAGStaegs()
+		// 		} else {
+		// 		}
+		// 	}
 			
 			
-			let reader = new FileReader();
-			reader.onload = function () {
-				let L_csvData = this.result.split(/[\r\n]+/g)
-				for (csvLineItem of L_csvData.slice(1)){
-					if (csvLineItem){
-						L_lineData = csvLineItem.split(/[\t\r,]+/g)
-						VueSetting.BuildNewDAGItem('BashOperator', L_lineData[0], L_lineData[1])
-					}
-				}
-			};
-			reader.readAsText(file);
-		},
+		// 	let reader = new FileReader();
+		// 	reader.onload = function () {
+		// 		let L_csvData = this.result.split(/[\r\n]+/g)
+		// 		for (csvLineItem of L_csvData.slice(1)){
+		// 			if (csvLineItem){
+		// 				L_lineData = csvLineItem.split(/[\t\r,]+/g)
+		// 				VueSetting.BuildNewDAGItem('BashOperator', L_lineData[0], L_lineData[1])
+		// 			}
+		// 		}
+		// 	};
+		// 	reader.readAsText(file);
+		// },
 		
 		clearAllDAGStaegs(){
 			while (this.dag_item_build_index.length != 0){
@@ -1234,6 +1390,7 @@ END = DummyOperator(
 			Vue.delete(this.uploadFileList, S_md5)
 		},
 		
+		// 上傳dag設定參數
 		uploadNewDAGSettingInfoToServer(){
 			this.dagSettingFileStatus = 'Uploading'
 			this.dagSettingFileStatusMessage = 'Uploading...'
@@ -1728,13 +1885,28 @@ END = DummyOperator(
 			// console.log("test:", getByKey(D_SettingData, 'TaskSettingList', {}))
 			var D_TaskSettingList = getByKey(D_SettingData, 'TaskSettingList', {})
 			for (uuid_key of Object.keys(D_TaskSettingList)) {
-				this.BuildNewDAGItem(
-					D_TaskSettingList[uuid_key]['type'],
-					D_TaskSettingList[uuid_key]['tesk_id'],
-					D_TaskSettingList[uuid_key]['python_name'],
-					D_TaskSettingList[uuid_key]['bash_command'],
-					D_TaskSettingList[uuid_key]['uuid'],
-				)
+				if (D_TaskSettingList[uuid_key]['type']=='BashOperator'){
+					this.BuildNewDAGItem(
+						D_TaskSettingList[uuid_key]['type'],
+						D_TaskSettingList[uuid_key]['tesk_id'],
+						uuidInput = D_TaskSettingList[uuid_key]['uuid'],
+						{
+							S_python_name : D_TaskSettingList[uuid_key]['python_name'],
+							S_bash_command : D_TaskSettingList[uuid_key]['bash_command'],
+						}
+					)
+				} else if (D_TaskSettingList[uuid_key]['type']=='PythonOperator'){
+					console.log( D_TaskSettingList[uuid_key]['jupyter_token'])
+					this.BuildNewDAGItem(
+						D_TaskSettingList[uuid_key]['type'],
+						D_TaskSettingList[uuid_key]['tesk_id'],
+						D_TaskSettingList[uuid_key]['uuid'],
+						{
+							S_jupyter_url : D_TaskSettingList[uuid_key]['jupyter_url'],
+							S_jupyter_token : D_TaskSettingList[uuid_key]['jupyter_token']
+						}
+					)
+				}
 			}
 
 			// dag_item_build_index : [], // 負責各DAG tasks 的排列順序

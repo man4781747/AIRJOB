@@ -6,7 +6,8 @@ services:
         build: ./DockerFiles/DjangoServer
         ports:
             - 8000:8000
-        command: sudo sh runServerBash.sh
+        # command: sudo sh runServerBash.sh
+        command: sudo python manage.py runserver 0.0.0.0:8000
         volumes:
             - ./Volume/DjangoServer/mydjango:/code
             - ./Airflow_Volume/dags:/airflowDagsFolder
@@ -17,19 +18,14 @@ services:
         restart: always
         tty: true
 
-    testweb:
-        container_name: django_test_server
-        build: ./DockerFiles/DjangoServer
+    jupyter:
+        container_name: jupyter_server
+        build: ./DockerFiles/JupyterServer
         ports:
-            - 5566:5566
-        command: sudo python manage.py runserver 0.0.0.0:5566
+            - 8001:8001
+        command: jupyter notebook --port 8001 --ip 0.0.0.0 --NotebookApp.token=password --allow-root
         volumes:
-            - ./Volume/DjangoServer/mydjango:/code
-            - ./Airflow_Volume/dags:/airflowDagsFolder
-            - ./Airflow_Volume/deleteDags:/deletedDag
-            - ./Airflow_Volume/tarFolder:/tarFolder
-        networks:
-            - my-network
+            - ./Jupyter_Volume:/jupyterFolder
         restart: always
         tty: true
 
@@ -38,7 +34,7 @@ services:
         build: ./DockerFiles/AirFlow
         command: python3 /code/RunAirFlowServer.py
         ports:
-            - 8080:8080
+            - 8002:8080
         volumes:
             - ./Airflow_Volume:/root/airflow
             - ./DockerFiles/AirFlow/pythonCode:/code
@@ -46,6 +42,22 @@ services:
             - my-network
         restart: always
         
+    # testweb:
+    #     container_name: django_test_server
+    #     build: ./DockerFiles/DjangoServer
+    #     ports:
+    #         - 5566:5566
+    #     command: sudo python manage.py runserver 0.0.0.0:5566
+    #     volumes:
+    #         - ./Volume/DjangoServer/mydjango:/code
+    #         - ./Airflow_Volume/dags:/airflowDagsFolder
+    #         - ./Airflow_Volume/deleteDags:/deletedDag
+    #         - ./Airflow_Volume/tarFolder:/tarFolder
+    #     networks:
+    #         - my-network
+    #     restart: always
+    #     tty: true
+
 networks:
     my-network:
         name: my-app-network
