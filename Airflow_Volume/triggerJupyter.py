@@ -125,8 +125,20 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                         }
                     ]
 
+                elif msg_type == "execute_reply" and rsp["content"]["status"] == "aborted":
+                    print("跳過")
+                    file['content']['cells'][code[i-1][1]]['outputs'] = [                        
+                        {
+                        'name': 'stdout', 
+                        'output_type': 'stream', 
+                        'text': "===== 以下由AIRJOB觸發並更新 =====\n===== 因上方錯誤，跳過\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
+                        },
+                    ]
+
                 elif msg_type == "status" and rsp["content"]["execution_state"] == "idle":
                     break
+                    
+
         except:
                 traceback.print_exc()
                 ws.close()
