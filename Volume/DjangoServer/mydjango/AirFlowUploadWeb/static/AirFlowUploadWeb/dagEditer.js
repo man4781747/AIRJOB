@@ -269,7 +269,7 @@ Vue.component("python-operator-item", {
 					</div>
 					<div class="dag-item-label">
 						<label class="input_area_label">Jupyter Token:</label>
-						<input v-on:input="dag_code" v-model="post.jupyter_token" placeholder="請輸入" :disabled="disable">
+						<input v-on:input="dag_code" type="password" v-model="post.jupyter_token" placeholder="請輸入" :disabled="disable">
 					</div>
 
 				</div>
