@@ -87,6 +87,8 @@ var VueSetting = new Vue({
 	data: {
 		// 基礎資訊
 		massage: '030',
+		version: 'v1.2149.0',
+
 		loadingVue: false,
 
 		show: true,
