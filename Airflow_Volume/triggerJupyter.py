@@ -6,6 +6,11 @@ import traceback
 from websocket import create_connection
 import re
 from airflow.exceptions import AirflowFailException
+import sys
+import os
+sys.path.append(os.path.split(os.path.realpath(__file__))[0])
+import tokenTransform
+
 
 def send_execute_request(code):
     msg_type = 'execute_request';
@@ -22,6 +27,11 @@ def send_execute_request(code):
     return msg
 
 def run(S_jupyterNotebookUrl, S_jupyterToken):
+    try:
+        S_jupyterToken = tokenTransform.dectry(S_jupyterToken)
+    except:
+        pass
+
     Re_jupyterNotebookUrl = re.search(r"^(?P<jupyter_url>.*)/notebooks/(?P<notebook_path>.*)", S_jupyterNotebookUrl)
     if not Re_jupyterNotebookUrl:
         print('URL Format 錯誤')

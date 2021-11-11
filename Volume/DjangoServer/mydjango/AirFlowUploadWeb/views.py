@@ -12,6 +12,7 @@ import sys
 import os
 import json
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
+import tokenTransform
 import connectAirflow
 import dagSettingFileManager as dagFile
 import datetime
@@ -679,7 +680,7 @@ def uploadNewDAGSettingInfo_v1(request, groupName):
             S_dagSettingFilePath = os.path.join(S_dagSettingFolder, 'dagSetting.json')
             
             Obj_dagFile = dagFile.dagSettingFileManager()
-            Obj_dagFile.BuildNewDagSettingFile(S_dagSettingFilePath, D_dagSetting)
+            D_dagSetting = Obj_dagFile.BuildNewDagSettingFile(S_dagSettingFilePath, D_dagSetting)
             
             S_dagPyFilePath = os.path.join(S_dagFolder, 'DAG_buildByWebBuilder.py')
             BuildByWebBuilderWithSettingJSON(S_dagPyFilePath, D_dagSetting)
