@@ -952,7 +952,7 @@ def getBashCommandString(S_pythonName):
     if os.path.exists(S_pythonFullPath):
         S_bashCommand = "python3 {python_file_path}".format(python_file_path=S_pythonFullPath)
         return S_bashCommand
-    raise Exception('找不到檔案: {}'.format(S_pythonName))
+    raise Exception('can not file file: {}'.format(S_pythonName))
 
 default_args = {
     'owner': "'''+D_dagSetting['Owner']+'''",
