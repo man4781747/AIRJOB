@@ -69,17 +69,6 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
             S_ws_url, 
             header=headers)
         B_hasFail = False    
-<<<<<<< HEAD
-        for L_c in code:
-            print(
-                '\n執行第{}區塊的code:\n================= START =================\n{}\n=================  END  =================\n'.format(L_c[1]+1,L_c[0])
-                )
-            ws.send(json.dumps(send_execute_request(L_c[0])))
-
-            try:
-                msg_type = ''
-                S_resultString = "\n執行結果:\n"
-=======
 
         for L_c in code:
             print(
@@ -89,16 +78,11 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
             try:
                 msg_type = ''
                 S_resultString = "\n執行結果:"
->>>>>>> main
                 while True:
                     rsp = json.loads(ws.recv())
                     msg_type = rsp["msg_type"]
                     if msg_type == "stream":
-<<<<<<< HEAD
-                        S_resultString += "{}\n".format(rsp["content"]["text"])
-=======
                         S_resultString += "\n{}".format(rsp["content"]["text"])
->>>>>>> main
                         file['content']['cells'][L_c[1]]['outputs'] = [
                             {
                             'name': rsp["content"]["name"], 
@@ -108,30 +92,17 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                             {
                             'name': 'stdout', 
                             'output_type': 'stream', 
-<<<<<<< HEAD
-                            'text': "===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
-=======
                             'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
->>>>>>> main
                             },
                         ]
                     elif msg_type == "execute_result":
                         if "image/png" in (rsp["content"]["data"].keys()):
-<<<<<<< HEAD
-                            S_resultString += "{}\n".format(rsp["content"]["data"]["image/png"])
-                        else:
-                            S_resultString += "{}\n".format(rsp["content"]["data"]["text/plain"])
-                    elif msg_type == "display_data":
-                        print(rsp["content"]["data"]["image/png"])
-                        file['content']['cells'][L_c[1]]['outputs'] = [                        
-=======
                             S_resultString += "\n{}".format(rsp["content"]["data"]["image/png"])
                         else:
                             S_resultString += "\n{}".format(rsp["content"]["data"]["text/plain"])
                     elif msg_type == "display_data":
                         S_resultString += "\n{}".format(rsp["content"]["data"]["image/png"])
                         file['content']['cells'][L_c[1]]['outputs'] = [
->>>>>>> main
                             {
                             "output_type": "display_data",
                             "data" : rsp["content"]['data'],
@@ -140,19 +111,11 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                             {
                             'name': 'stdout', 
                             'output_type': 'stream', 
-<<<<<<< HEAD
-                            'text': "===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
-                            },
-                        ]
-                    elif msg_type == "error":
-                        S_resultString += "{}\n".format(rsp["content"]["traceback"])
-=======
                             'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
                             },
                         ]
                     elif msg_type == "error":
                         S_resultString += "\n{}".format(rsp["content"]["traceback"])
->>>>>>> main
                         B_hasFail = True
                         file['content']['cells'][L_c[1]]['outputs'] = [                        
                             {
@@ -164,59 +127,33 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                             {
                             'name': 'stdout', 
                             'output_type': 'stream', 
-<<<<<<< HEAD
-                            'text': "===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
-=======
                             'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
->>>>>>> main
                             },
                         ]
 
                     elif msg_type == "execute_reply" and rsp["content"]["status"] == "aborted":
-<<<<<<< HEAD
-                        S_resultString += "{}\n".format("因上方流程遇到錯誤，跳過")
-=======
                         S_resultString += "\n跳過"
->>>>>>> main
                         file['content']['cells'][L_c[1]]['outputs'] = [                        
                             {
                             'name': 'stdout', 
                             'output_type': 'stream', 
-<<<<<<< HEAD
-                            'text': "===== 以下由AIRJOB觸發並更新 =====\n===== 因上方錯誤，跳過\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
-=======
                             'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
->>>>>>> main
                             },
                         ]
 
                     elif msg_type == "status" and rsp["content"]["execution_state"] == "idle":
                         print(S_resultString)
                         break
-<<<<<<< HEAD
-            except:
-                    traceback.print_exc()
-
-
-
-=======
                         
             except:
                 traceback.print_exc()
->>>>>>> main
     except Exception as e:
         try:
             ws.close()
         except:
             pass
         raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
-<<<<<<< HEAD
-
-    print('所有流程執行完畢!!')
-
-=======
                 
->>>>>>> main
     ws.close()
 
     new = {
