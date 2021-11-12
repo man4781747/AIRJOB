@@ -214,7 +214,7 @@ def GetDAGRunsList(request):
         L_dagRunsList = airflowConnecter.getDAGRunsList(
             request.POST['DAG_ID'],
             limit=100,
-            order_by=['-start_date']
+            # order_by=['-start_date']
         )
         
         return JsonResponse({
