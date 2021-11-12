@@ -974,7 +974,7 @@ def getBashCommandString(S_pythonName):
     if os.path.exists(S_pythonFullPath):
         S_bashCommand = "python3 {python_file_path}".format(python_file_path=S_pythonFullPath)
         return S_bashCommand
-    raise Exception('找不到檔案: {}'.format(S_pythonName))
+    raise Exception('Can not find file: {}'.format(S_pythonName))
 
 default_args = {
     'owner': "'''+D_dagSetting['Owner']+'''",
@@ -989,7 +989,7 @@ default_args = {
 
 dag = DAG(
     dag_id="'''+D_dagSetting['DAG_ID']+'''", 
-    description='''+"'''{}'''".format(D_dagSetting['Description'])+''',
+    description='',
     default_args=default_args,
     schedule_interval="'''+D_dagSetting['CronString']+'''",
     catchup=False,
@@ -1016,18 +1016,18 @@ END = DummyOperator(
             D_taskInfo = D_dagSetting['TaskSettingList'][S_taskKeyChose]
             print(D_taskInfo)
             if D_taskInfo['type'] == 'BashOperator':
-                S_taskStr = "{task_id} = BashOperator(\n    task_id='{task_id}',\n    bash_command=getBashCommandString('{python_name}'),\n    dag=dag,\n    trigger_rule=TriggerRule.ALL_DONE\n    )\n\t\n"
+                S_taskStr = "Task_{task_id} = BashOperator(\n    task_id='{task_id}',\n    bash_command=getBashCommandString('{python_name}'),\n    dag=dag,\n    trigger_rule=TriggerRule.ALL_DONE\n    )\n\t\n"
                 S_pyContent += S_taskStr.format(task_id=D_taskInfo["tesk_id"],python_name=D_taskInfo["python_name"])
                 
             elif D_taskInfo['type'] == 'PythonOperator':
                 print(D_taskInfo)
-                S_taskStr = "{task_id} = PythonOperator(\n    task_id='{task_id}',\n    python_callable=triggerJupyter.run,\n    op_kwargs={op_kwargs},\n    dag=dag,\n    trigger_rule=TriggerRule.ALL_DONE\n    )\n\t\n"
+                S_taskStr = "Task_{task_id} = PythonOperator(\n    task_id='{task_id}',\n    python_callable=triggerJupyter.run,\n    op_kwargs={op_kwargs},\n    dag=dag,\n    trigger_rule=TriggerRule.ALL_DONE\n    )\n\t\n"
                 op_kwargs = "{"+"'S_jupyterNotebookUrl':'{jupyter_notebook_url}', 'S_jupyterToken':'{jupyter_token}'".format(
                     jupyter_notebook_url = D_taskInfo.get("jupyter_url", ""),
                     jupyter_token = D_taskInfo.get("jupyter_token", ""),
                 ) + "}"
                 S_pyContent += S_taskStr.format(task_id=D_taskInfo["tesk_id"],op_kwargs=op_kwargs)
-            L_taskList.append(D_taskInfo["tesk_id"])
+            L_taskList.append("Task_"+D_taskInfo["tesk_id"])
         S_pyContent += ' >> '.join(['START'] + L_taskList + ['END'])
 
         f.write(S_pyContent)
