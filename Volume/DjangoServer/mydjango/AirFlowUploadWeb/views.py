@@ -974,12 +974,7 @@ def getBashCommandString(S_pythonName):
     if os.path.exists(S_pythonFullPath):
         S_bashCommand = "python3 {python_file_path}".format(python_file_path=S_pythonFullPath)
         return S_bashCommand
-<<<<<<< HEAD
     raise Exception('can not file file: {}'.format(S_pythonName))
-=======
-    raise Exception('Can not find file: {}'.format(S_pythonName))
->>>>>>> main
-
 default_args = {
     'owner': "'''+D_dagSetting['Owner']+'''",
     'email': ['leekaiping@cathaylife.com.tw'],
