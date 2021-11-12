@@ -83,7 +83,7 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                     msg_type = rsp["msg_type"]
                     if msg_type == "stream":
                         S_resultString += "{}\n".format(rsp["content"]["text"])
-                        file['content']['cells'][L_c[1]-1]['outputs'] = [
+                        file['content']['cells'][L_c[1]]['outputs'] = [
                             {
                             'name': rsp["content"]["name"], 
                             'output_type': 'stream', 
@@ -102,7 +102,7 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                             S_resultString += "{}\n".format(rsp["content"]["data"]["text/plain"])
                     elif msg_type == "display_data":
                         print(rsp["content"]["data"]["image/png"])
-                        file['content']['cells'][L_c[1]-1]['outputs'] = [                        
+                        file['content']['cells'][L_c[1]]['outputs'] = [                        
                             {
                             "output_type": "display_data",
                             "data" : rsp["content"]['data'],
@@ -117,7 +117,7 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
                     elif msg_type == "error":
                         S_resultString += "{}\n".format(rsp["content"]["traceback"])
                         B_hasFail = True
-                        file['content']['cells'][L_c[1]-1]['outputs'] = [                        
+                        file['content']['cells'][L_c[1]]['outputs'] = [                        
                             {
                             "output_type": "error",
                             "ename" : rsp["content"]['ename'],
@@ -133,7 +133,7 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
 
                     elif msg_type == "execute_reply" and rsp["content"]["status"] == "aborted":
                         S_resultString += "{}\n".format("因上方流程遇到錯誤，跳過")
-                        file['content']['cells'][L_c[1]-1]['outputs'] = [                        
+                        file['content']['cells'][L_c[1]]['outputs'] = [                        
                             {
                             'name': 'stdout', 
                             'output_type': 'stream', 
