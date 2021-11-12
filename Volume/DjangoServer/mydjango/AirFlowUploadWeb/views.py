@@ -278,7 +278,7 @@ def GetYesterdayFailTaskList_v1(request, groupName):
             D_result = airflowConnecter.getDAGRunsList(
                 S_DAG_id=S_dag_id,
                 limit=100,
-                order_by=['-start_date'],
+                # order_by=['-start_date'],
                 start_date_gte=S_yesterday,
                 start_date_lte=S_start_date_lte
             )
@@ -321,7 +321,7 @@ def GetYesterdayFailTaskList_v1(request, groupName):
                 D_result = airflowConnecter.getDAGRunsList(
                     S_DAG_id=S_dag_id,
                     limit=100,
-                    order_by=['-start_date'],
+                    # order_by=['-start_date'],
                     start_date_gte=S_yesterday,
                     start_date_lte=S_start_date_lte
                 )
