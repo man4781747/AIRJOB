@@ -183,7 +183,7 @@ def GetDAGRunsStatistics(request):
         L_dagRunsList = airflowConnecter.getDAGRunsList(
             request.POST['DAG_ID'],
             limit=20,
-            order_by=['-start_date']
+            # order_by=['-start_date']
         )
         D_statistics = {}
         for D_dagRunsChose in L_dagRunsList['dag_runs']:
