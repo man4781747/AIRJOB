@@ -68,90 +68,91 @@ def run(S_jupyterNotebookUrl, S_jupyterToken):
         ws = create_connection(
             S_ws_url, 
             header=headers)
+        B_hasFail = False    
+
         for L_c in code:
+            print(
+                '\n執行第{}區塊的code:\n================= START =================\n{}\n=================  END  ================='.format(L_c[1]+1,L_c[0])
+            )
             ws.send(json.dumps(send_execute_request(L_c[0])))
+            try:
+                msg_type = ''
+                S_resultString = "\n執行結果:"
+                while True:
+                    rsp = json.loads(ws.recv())
+                    msg_type = rsp["msg_type"]
+                    if msg_type == "stream":
+                        S_resultString += "\n{}".format(rsp["content"]["text"])
+                        file['content']['cells'][L_c[1]]['outputs'] = [
+                            {
+                            'name': rsp["content"]["name"], 
+                            'output_type': 'stream', 
+                            'text': rsp["content"]["text"]
+                            },
+                            {
+                            'name': 'stdout', 
+                            'output_type': 'stream', 
+                            'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
+                            },
+                        ]
+                    elif msg_type == "execute_result":
+                        if "image/png" in (rsp["content"]["data"].keys()):
+                            S_resultString += "\n{}".format(rsp["content"]["data"]["image/png"])
+                        else:
+                            S_resultString += "\n{}".format(rsp["content"]["data"]["text/plain"])
+                    elif msg_type == "display_data":
+                        S_resultString += "\n{}".format(rsp["content"]["data"]["image/png"])
+                        file['content']['cells'][L_c[1]]['outputs'] = [
+                            {
+                            "output_type": "display_data",
+                            "data" : rsp["content"]['data'],
+                            "metadata": rsp["content"]['metadata']
+                            },
+                            {
+                            'name': 'stdout', 
+                            'output_type': 'stream', 
+                            'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
+                            },
+                        ]
+                    elif msg_type == "error":
+                        S_resultString += "\n{}".format(rsp["content"]["traceback"])
+                        B_hasFail = True
+                        file['content']['cells'][L_c[1]]['outputs'] = [                        
+                            {
+                            "output_type": "error",
+                            "ename" : rsp["content"]['ename'],
+                            "evalue": rsp["content"]['evalue'],
+                            "traceback": rsp["content"]['traceback'],
+                            },
+                            {
+                            'name': 'stdout', 
+                            'output_type': 'stream', 
+                            'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
+                            },
+                        ]
+
+                    elif msg_type == "execute_reply" and rsp["content"]["status"] == "aborted":
+                        S_resultString += "\n跳過"
+                        file['content']['cells'][L_c[1]]['outputs'] = [                        
+                            {
+                            'name': 'stdout', 
+                            'output_type': 'stream', 
+                            'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
+                            },
+                        ]
+
+                    elif msg_type == "status" and rsp["content"]["execution_state"] == "idle":
+                        print(S_resultString)
+                        break
+                        
+            except:
+                traceback.print_exc()
     except Exception as e:
         try:
             ws.close()
         except:
             pass
         raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
-
-    # 我們只拿Code執行完的訊息結果，其他訊息將被忽略
-    B_hasFail = False
-    for i in range(0, len(code)+1):
-        try:
-            msg_type = ''
-            while True:
-                rsp = json.loads(ws.recv())
-                msg_type = rsp["msg_type"]
-                if msg_type == "stream":
-                    print(rsp["content"]["text"])
-                    file['content']['cells'][code[i-1][1]]['outputs'] = [
-                        {
-                        'name': 'stdout', 
-                        'output_type': 'stream', 
-                        'text': "===== 以下由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
-                        },
-                        {
-                        'name': rsp["content"]["name"], 
-                        'output_type': 'stream', 
-                        'text': rsp["content"]["text"]
-                        },
-                    ]
-                elif msg_type == "execute_result":
-                    if "image/png" in (rsp["content"]["data"].keys()):
-                        print(rsp["content"]["data"]["image/png"])
-                    else:
-                        print(rsp["content"]["data"]["text/plain"])
-                elif msg_type == "display_data":
-                    print(rsp["content"]["data"]["image/png"])
-                    file['content']['cells'][code[i-1][1]]['outputs'] = [                        
-                        {
-                        'name': 'stdout', 
-                        'output_type': 'stream', 
-                        'text': "===== 以下由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
-                        },
-                        {
-                        "output_type": "display_data",
-                        "data" : rsp["content"]['data'],
-                        "metadata": rsp["content"]['metadata']
-                        }
-                    ]
-                elif msg_type == "error":
-                    print(rsp["content"]["traceback"])
-                    B_hasFail = True
-                    file['content']['cells'][code[i-1][1]]['outputs'] = [                        
-                        {
-                        'name': 'stdout', 
-                        'output_type': 'stream', 
-                        'text': "===== 以下由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
-                        },
-                        {
-                        "output_type": "error",
-                        "ename" : rsp["content"]['ename'],
-                        "evalue": rsp["content"]['evalue'],
-                        "traceback": rsp["content"]['traceback'],
-                        }
-                    ]
-
-                elif msg_type == "execute_reply" and rsp["content"]["status"] == "aborted":
-                    print("跳過")
-                    file['content']['cells'][code[i-1][1]]['outputs'] = [                        
-                        {
-                        'name': 'stdout', 
-                        'output_type': 'stream', 
-                        'text': "===== 以下由AIRJOB觸發並更新 =====\n===== 因上方錯誤，跳過\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
-                        },
-                    ]
-
-                elif msg_type == "status" and rsp["content"]["execution_state"] == "idle":
-                    break
-                    
-
-        except:
-                traceback.print_exc()
-                ws.close()
                 
     ws.close()
 
