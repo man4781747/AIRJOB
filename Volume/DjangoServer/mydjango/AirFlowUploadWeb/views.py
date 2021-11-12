@@ -40,6 +40,25 @@ if not os.path.exists(S_tarFolder):
 if not os.path.exists(S_dagsDeletedPath):
     os.makedirs(S_dagsDeletedPath)
 
+def OrderDAGRunsByStartTime(L_dagRuns):
+    L_sortList = []
+    for D_dagRunInfo in L_dagRuns:
+        S_timeStr = D_dagRunInfo.get('start_time',"1990-01-01T00:00:00.000000+00:00")
+        S_timeStr_1 = S_timeStr[:19]
+        S_timeStr_2 = S_timeStr[-6:-3]
+        DT_startDatetime = datetime.datetime.strptime(S_timeStr_1, "%Y-%m-%dT%H:%M:%S") + datetime.timedelta(days=int(S_timeStr_2))
+        L_sortList.append([
+            DT_startDatetime,
+            D_dagRunInfo
+        ])
+    L_sortList.sort(key = lambda s: s[0])
+    L_sorted = []
+    for L_dagRunInfo in L_sortList:
+        L_sorted.append(L_dagRunInfo[1])
+
+    return L_sorted[::-1]
+
+
 @csrf_protect
 def mainHTML(request):
     return render(request, 'MainHTML.html')
@@ -183,8 +202,9 @@ def GetDAGRunsStatistics(request):
         L_dagRunsList = airflowConnecter.getDAGRunsList(
             request.POST['DAG_ID'],
             limit=20,
-            order_by=['-start_date']
+            # order_by=['-start_date']
         )
+        L_dagRunsList['dag_runs'] = OrderDAGRunsByStartTime(L_dagRunsList['dag_runs'])
         D_statistics = {}
         for D_dagRunsChose in L_dagRunsList['dag_runs']:
             S_state = D_dagRunsChose.get('state','')
@@ -214,9 +234,10 @@ def GetDAGRunsList(request):
         L_dagRunsList = airflowConnecter.getDAGRunsList(
             request.POST['DAG_ID'],
             limit=100,
-            order_by=['-start_date']
+            # order_by=['-start_date']
         )
-        
+        L_dagRunsList['dag_runs'] = OrderDAGRunsByStartTime(L_dagRunsList['dag_runs'])
+        print(L_dagRunsList)
         return JsonResponse({
             'DAG_ID':request.POST['DAG_ID'],
             'DAG_Runs': L_dagRunsList
@@ -278,10 +299,11 @@ def GetYesterdayFailTaskList_v1(request, groupName):
             D_result = airflowConnecter.getDAGRunsList(
                 S_DAG_id=S_dag_id,
                 limit=100,
-                order_by=['-start_date'],
+                # order_by=['-start_date'],
                 start_date_gte=S_yesterday,
                 start_date_lte=S_start_date_lte
             )
+            D_result['dag_runs'] = OrderDAGRunsByStartTime(D_result['dag_runs'])
             I_count = 0
             while D_result.get('dag_runs', []) != [] and I_count <= 30:
                 I_count += 1
@@ -321,11 +343,11 @@ def GetYesterdayFailTaskList_v1(request, groupName):
                 D_result = airflowConnecter.getDAGRunsList(
                     S_DAG_id=S_dag_id,
                     limit=100,
-                    order_by=['-start_date'],
+                    # order_by=['-start_date'],
                     start_date_gte=S_yesterday,
                     start_date_lte=S_start_date_lte
                 )
-
+                D_result['dag_runs'] = OrderDAGRunsByStartTime(D_result['dag_runs'])
             if D_failResult[S_dag_id]['failList'] == []:
                 del D_failResult[S_dag_id]
 
