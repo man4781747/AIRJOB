@@ -11,7 +11,7 @@ import os
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 import tokenTransform
 
-S_airjobUrl = "http://88.248.13.77:8893/AirFlowUploadWeb/testHTML/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
+S_airjobUrl = "http://88.248.13.72:8900/AirFlowUploadWeb/testHTML/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
 
 def send_execute_request(code):
     msg_type = 'execute_request';
