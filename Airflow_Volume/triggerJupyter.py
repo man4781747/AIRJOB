@@ -40,12 +40,12 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     except:
         pass
 
-    Re_jupyterNotebookUrl = re.search(r"^(?P<jupyter_url>.*)/notebooks/(?P<notebook_path>.*)", S_jupyterNotebookUrl)
+    Re_jupyterNotebookUrl = re.search(r"^(?P<jupyter_url>.*)/notebooks/(?P<notebook_path>[a-zA-Z0-9._/-]*)", S_jupyterNotebookUrl)
     if not Re_jupyterNotebookUrl:
         print('URL Format 錯誤')
         print(S_jupyterNotebookUrl)
         raise AirflowFailException("URL 格式錯誤，找不到檔案")
-    
+    print('嘗試執行Jupyter檔案: {}'.format(S_jupyterNotebookUrl))
     try:
         notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path') 
         base = Re_jupyterNotebookUrl.group('jupyter_url')
