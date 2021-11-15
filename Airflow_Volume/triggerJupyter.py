@@ -50,7 +50,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         raise AirflowFailException("URL 格式錯誤，找不到檔案")
     print('嘗試執行Jupyter檔案: {}'.format(S_jupyterNotebookUrl))
     try:
-        notebook_path = '/' + urllib.parse.quote(Re_jupyterNotebookUrl.group('notebook_path').split('?')[0].split('#')[0])
+        notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path').split('?')[0].split('#')[0]
         base = Re_jupyterNotebookUrl.group('jupyter_url')
         headers = {'Authorization': S_jupyterToken}
         S_ip_port = base.split('//')[-1]
