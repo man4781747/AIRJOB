@@ -40,14 +40,14 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     except:
         pass
 
-    Re_jupyterNotebookUrl = re.search(r"^(?P<jupyter_url>.*)/notebooks/(?P<notebook_path>[a-zA-Z0-9._/-]*)", S_jupyterNotebookUrl)
+    Re_jupyterNotebookUrl = re.search(r"^(?P<jupyter_url>.*)/notebooks/(?P<notebook_path>.*)", S_jupyterNotebookUrl)
     if not Re_jupyterNotebookUrl:
         print('URL Format 錯誤')
         print(S_jupyterNotebookUrl)
         raise AirflowFailException("URL 格式錯誤，找不到檔案")
     print('嘗試執行Jupyter檔案: {}'.format(S_jupyterNotebookUrl))
     try:
-        notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path') 
+        notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path').split('?')[0].split('#')[0] 
         base = Re_jupyterNotebookUrl.group('jupyter_url')
         headers = {'Authorization': S_jupyterToken}
         S_ip_port = base.split('//')[-1]
@@ -55,19 +55,23 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         url = base + '/api/sessions' + "?token={}".format(S_jupyterToken)
 
         params = '{"path":\"%s\","type":"notebook","name":"","kernel":{"id":null,"name":"python3"}}' % notebook_path
-        response = requests.post(url, headers=headers, data=params)
+        response = requests.post(url, headers=headers, data=params.encode('utf-8'))
         session = json.loads(response.text)
         kernel = session["kernel"]
     except Exception as e:
+        print(e)
         raise AirflowFailException("登入Jupyter失敗，請確認Token以及URL提供正確")
-
+    
     try:
         # 讀取notebook檔案，並獲取每個Cell裡的Code
         url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
         response = requests.get(url,headers=headers)
         file = json.loads(response.text)
+        print('=====================================')
+        print(file)
         code = [ [c['source'],index] for index,c in enumerate(file['content']['cells']) if c['cell_type']=='code' if len(c['source'])>0 ]   
     except Exception as e:
+        print(e)
         raise AirflowFailException("獲得NoteBook內容失敗，請確認Token以及URL提供正確")
 
     try:
