@@ -18,7 +18,7 @@ import dagSettingFileManager as dagFile
 import datetime
 import zipfile
 import shutil
-
+import urllib.parse
 
 #########################################################################
 # Airflow 的URL、帳號、密碼請更改此處
@@ -1022,7 +1022,7 @@ END = DummyOperator(
                 print(D_taskInfo)
                 S_taskStr = "Task_{task_id} = PythonOperator(\n    task_id='{task_id}',\n    python_callable=triggerJupyter.run,\n    op_kwargs={op_kwargs},\n    dag=dag,\n    trigger_rule=TriggerRule.ALL_DONE\n    )\n\t\n"
                 op_kwargs = "{"+"'S_jupyterNotebookUrl':'{jupyter_notebook_url}', 'S_jupyterToken':'{jupyter_token}', 'S_dagID':'{dag_id}'".format(
-                    jupyter_notebook_url = D_taskInfo.get("jupyter_url", ""),
+                    jupyter_notebook_url = urllib.parse.quote(D_taskInfo.get("jupyter_url", "")),
                     jupyter_token = D_taskInfo.get("jupyter_token", ""),
                     dag_id = D_dagSetting['DAG_ID'],
                 ) + "}"
