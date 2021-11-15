@@ -67,8 +67,6 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
         response = requests.get(url,headers=headers)
         file = json.loads(response.text)
-        print('=====================================')
-        print(file)
         code = [ [c['source'],index] for index,c in enumerate(file['content']['cells']) if c['cell_type']=='code' if len(c['source'])>0 ]   
     except Exception as e:
         print(e)
