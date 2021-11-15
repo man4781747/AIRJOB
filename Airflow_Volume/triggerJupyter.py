@@ -41,6 +41,8 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     except:
         pass
 
+    S_jupyterNotebookUrl = urllib.parse.unquote(S_jupyterNotebookUrl)
+
     Re_jupyterNotebookUrl = re.search(r"^(?P<jupyter_url>.*)/notebooks/(?P<notebook_path>.*)", S_jupyterNotebookUrl)
     if not Re_jupyterNotebookUrl:
         print('URL Format 錯誤')
