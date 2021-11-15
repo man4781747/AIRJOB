@@ -11,6 +11,7 @@ import os
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 import tokenTransform
 import urllib.parse
+import time
 
 S_airjobUrl = "http://35.194.167.48:8000/AirFlowUploadWeb/testHTML/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
 
@@ -49,37 +50,51 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         print(S_jupyterNotebookUrl)
         raise AirflowFailException("URL 格式錯誤，找不到檔案")
     print('嘗試執行Jupyter檔案: {}'.format(S_jupyterNotebookUrl))
+
     try:
         notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path').split('?')[0].split('#')[0]
         base = Re_jupyterNotebookUrl.group('jupyter_url')
         headers = {'Authorization': S_jupyterToken}
         S_ip_port = base.split('//')[-1]
-        
-        url = base + '/api/sessions' + "?token={}".format(S_jupyterToken)
-
-        params = '{"path":\"%s\","type":"notebook","name":"","kernel":{"id":null,"name":"python3"}}' % notebook_path
-        response = requests.post(url, headers=headers, data=params.encode('utf-8'))
-        session = json.loads(response.text)
-        kernel = session["kernel"]
+        print('建立新kernel')
+        S_URL_NewKernels = base + '/api/kernels'+ "?token={}".format(S_jupyterToken)
+        response = requests.post(S_URL_NewKernels)
+        D_return = json.loads(response.text)
+        D_kernel = D_return
+        print("建立新kernel成功: {}".format(D_kernel['id']))
     except Exception as e:
         print(e)
-        raise AirflowFailException("登入Jupyter失敗，請確認Token以及URL提供正確")
+        raise AirflowFailException("建立新kernel失敗，請聯絡工程組")
+
+    # try:
+    #     notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path').split('?')[0].split('#')[0]
+    #     base = Re_jupyterNotebookUrl.group('jupyter_url')
+    #     headers = {'Authorization': S_jupyterToken}
+    #     S_ip_port = base.split('//')[-1]
+        
+    #     url = base + '/api/sessions' + "?token={}".format(S_jupyterToken)
+
+    #     params = '{"path":\"%s\","type":"notebook","name":"","kernel":{"id":null,"name":"python3"}}' % notebook_path
+    #     response = requests.post(url, headers=headers, data=params.encode('utf-8'))
+    #     session = json.loads(response.text)
+    #     kernel = session["kernel"]
+    # except Exception as e:
+    #     print(e)
+    #     raise AirflowFailException("登入Jupyter失敗，請確認Token以及URL提供正確")
     
     try:
-        # 讀取notebook檔案，並獲取每個Cell裡的Code
+        print("讀取notebook檔案，並獲取每個Cell裡的Code")
         url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
         response = requests.get(url,headers=headers)
         file = json.loads(response.text)
-        print('=====================================')
-        print(file)
         code = [ [c['source'],index] for index,c in enumerate(file['content']['cells']) if c['cell_type']=='code' if len(c['source'])>0 ]   
     except Exception as e:
         print(e)
         raise AirflowFailException("獲得NoteBook內容失敗，請確認Token以及URL提供正確")
 
     try:
-        # 開始啟動 WebSocket channels (request/reply)
-        S_ws_url = "ws://{}/api/kernels/".format(S_ip_port)+kernel["id"]+"/channels?session_id"+session["id"] + "&token={}".format(S_jupyterToken)
+        print("開始啟動 WebSocket channels")
+        S_ws_url = "ws://{}/api/kernels/".format(S_ip_port)+D_kernel["id"]+"/channels?"+"token={}".format(S_jupyterToken)
         ws = create_connection(
             S_ws_url, 
             header=headers)
@@ -94,6 +109,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
                 msg_type = ''
                 S_resultString = "\n執行結果:"
                 while True:
+                    time.sleep(0.1)
                     rsp = json.loads(ws.recv())
                     msg_type = rsp["msg_type"]
                     if msg_type == "stream":
@@ -185,8 +201,14 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         except:
             pass
         raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
-                
+    print('所有Code已執行完畢')
+    time.sleep(0.1)            
     ws.close()
+    time.sleep(0.1)
+    print('刪除kernel: {}'.format(D_kernel['id']))
+    S_URL_DelKernels = base + '/api/kernels/{}?token={}'.format(D_kernel['id'],S_jupyterToken)
+    response = requests.delete(url,headers=headers)
+    print(response.text)
 
     new = {
         'type': "notebook",
