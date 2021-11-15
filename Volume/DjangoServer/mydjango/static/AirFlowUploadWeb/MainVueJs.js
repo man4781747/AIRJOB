@@ -87,7 +87,11 @@ var VueSetting = new Vue({
 	data: {
 		// 基礎資訊
 		massage: '030',
+		version: 'v1.2149.0',
+
 		loadingVue: false,
+
+		airflowURL: "http://35.194.167.48:8002",
 
 		show: true,
 		NowPage: 'dagListViewer',
@@ -259,6 +263,7 @@ var VueSetting = new Vue({
 		openAddNewDAGEditer(){
 			VueSetting.SetEditer({})
 			VueSetting.openDAGEditer()
+			VueSetting.GetTagsListFromServer()
 			VueSetting.DAG_ID_locker = false
 			VueSetting.lastPage = "dagListViewer"
 		},
