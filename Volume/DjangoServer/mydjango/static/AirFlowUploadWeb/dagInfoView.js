@@ -182,13 +182,12 @@ var VueSetting_dagInfoView = {
 				'SysInfo' : 'Loading',
 				'DAG_ID' : S_dag_id,
 			}
+			console.log("/AirFlowUploadWeb/API/v1/"+this.projectName+"/loadExistDAGSettingInfo/"+S_dag_id+"/")
 			fetch("/AirFlowUploadWeb/API/v1/"+this.projectName+"/loadExistDAGSettingInfo/"+S_dag_id+"/", {
 			}).then(function(response) {
 				return response.json();
 			})
 			.then(function(myJson) {
-				// console.log(myJson)
-
 				if (myJson['Warning'] != undefined){
 					VueSetting.DAGSettingInfo = {
 						'SysInfo' : 'Warning',
@@ -310,6 +309,7 @@ var VueSetting_dagInfoView = {
 			this.DAG_ID_locker = true
 			this.dagIdCheckPass = true
 			this.lastPage = "dagInfoView"
+			console.log(this.DAGSettingInfo['DAGDetailInfo'])
 			this.SetEditer(this.DAGSettingInfo['DAGDetailInfo'])
 			this.openDAGEditer()
 		},
