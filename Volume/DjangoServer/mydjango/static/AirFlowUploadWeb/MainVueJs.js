@@ -91,7 +91,7 @@ var VueSetting = new Vue({
 
 		loadingVue: false,
 
-		airflowURL: "http://35.194.167.48:8002",
+		airflowURL: "http://88.248.13.77:8893",
 
 		show: true,
 		NowPage: 'dagListViewer',
