@@ -73,12 +73,23 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         S_ip_port = base.split('//')[-1]
         
         url = base + '/api/sessions' + "?token={}".format(S_jupyterToken)
-
-        params = '{"path":\"%s\","type":"notebook","name":"","kernel":{"id":null,"name":"python3"}}' % notebook_path
+        D_params = {
+            "path": notebook_path+"___{}".format(uuid.uuid1().hex),
+            "type":"notebook",
+            "name":"uuid_{}".format(uuid.uuid1().hex),
+            "kernel":{
+                "id":None,
+                "name":"python3"
+            },
+        }
+        params = json.dumps(D_params)
         print('獲得session資訊')
         response = requests.post(url, headers=headers, data=params.encode('utf-8'))
         session = json.loads(response.text)
         D_kernel = session["kernel"]
+        # print(session)
+        S_sessionsUuid = session['id']
+        print('建立新session成功: {}'.format(S_sessionsUuid))
         print("獲得kernel成功: {}".format(D_kernel['id']))
     except Exception as e:
         print(e)
@@ -209,9 +220,14 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     time.sleep(0.1)
     print('刪除kernel: {}'.format(D_kernel['id']))
     S_URL_DelKernels = base + '/api/kernels/{}?token={}'.format(D_kernel['id'],S_jupyterToken)
-    response = requests.delete(url,headers=headers)
-    print(response.text)
-
+    response = requests.delete(S_URL_DelKernels,headers=headers)
+    print(response)
+    print('刪除kernel成功: {}'.format(D_kernel['id']))
+    # print('刪除session: {}'.format(S_sessionsUuid))
+    # S_URL_DelSession = base + '/api/sessions/{}?token={}'.format(S_sessionsUuid,S_jupyterToken)
+    # response = requests.delete(S_URL_DelSession,headers=headers)
+    # print(response)
+    # print('刪除session成功: {}'.format(S_sessionsUuid))
     new = {
         'type': "notebook",
         'content':file['content'],
