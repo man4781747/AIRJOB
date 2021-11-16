@@ -58,7 +58,6 @@ class airflowConnecter:
         # https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns
         L_paras = []
         L_paras.append('limit={}'.format(limit))
-        L_paras.append('offset={}'.format(offset))
         if re.search(self.S_datetimeReCheck, execution_date_gte):
             L_paras.append('execution_date_gte={}'.format(execution_date_gte))
             
@@ -88,6 +87,15 @@ class airflowConnecter:
         # print(S_getDAGRunsList)
         try:
             D_dagRunsList = requests.get(S_getDAGRunsList, auth=(self.S_account, self.S_password)).json()
+            if int(D_dagRunsList['total_entries']) > limit:
+                offset = int(D_dagRunsList['total_entries']) - limit
+                L_paras.append('offset={}'.format(offset))
+                S_parasString = '&'.join(L_paras)
+                S_getDAGRunsList = "{airflowURL}/api/v1/dags/{dag_id}/dagRuns?{paras}".format(
+                    airflowURL=self.airflowURL,dag_id=S_DAG_id,paras=S_parasString
+                )
+                D_dagRunsList = requests.get(S_getDAGRunsList, auth=(self.S_account, self.S_password)).json()
+                
             return D_dagRunsList
         except Exception as e:
             return {'status': 'Fail', 'message': str(e)}
