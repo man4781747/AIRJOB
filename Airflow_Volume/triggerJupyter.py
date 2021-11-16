@@ -115,16 +115,38 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             header=headers)
         B_hasFail = False    
 
-        for L_c in code:
-            print(
-                '\n執行第{}區塊的code:\n================= START =================\n{}\n=================  END  ================='.format(L_c[1]+1,L_c[0])
-            )
-            ws.send(json.dumps(send_execute_request(L_c[0])))
+        L_resultList = []
+
+        # 嘗試處裡Jupyter API的錯位BUG
+        msg_type = ''
+        op = ws.send(json.dumps(send_execute_request(code[0][0])))
+        rsp = json.loads(ws.recv())
+        msg_type = rsp["msg_type"]
+        I_shift = 0
+        if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
+            code = code + [['',-1]]
+            ws.send(json.dumps(send_execute_request(code[1][0])))
+            I_shift = 1
+        else:
+            while True:
+                if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
+                    break
+
+        for I_inedx,L_c in enumerate(code):
+            if L_c[1] != -1:
+                print(
+                    '\n執行第{}區塊的code:\n================= START =================\n{}\n=================  END  ================='.format(
+                    L_c[1]+1,
+                    L_c[0])
+                )
+            else:
+                break
+            if I_shift != 1 or I_inedx not in [1,0] :
+                ws.send(json.dumps(send_execute_request(L_c[0])))
             try:
                 msg_type = ''
                 S_resultString = "\n執行結果:"
                 while True:
-                    time.sleep(0.1)
                     rsp = json.loads(ws.recv())
                     msg_type = rsp["msg_type"]
                     if msg_type == "stream":
@@ -205,7 +227,8 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
                         ]
 
                     elif msg_type == "status" and rsp["content"]["execution_state"] == "idle":
-                        print(S_resultString)
+                        if L_c[1] != -1:
+                            print(S_resultString)
                         break
                         
             except:
