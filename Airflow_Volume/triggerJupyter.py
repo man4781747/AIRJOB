@@ -13,7 +13,7 @@ import tokenTransform
 import urllib.parse
 import time
 
-S_airjobUrl = "http://35.194.167.48:8000/AirFlowUploadWeb/testHTML/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
+S_airjobUrl = "http://88.248.13.72:8900/AirFlowUploadWeb/testHTML/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
 
 def send_execute_request(code):
     msg_type = 'execute_request';
@@ -119,7 +119,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
 
         # 嘗試處裡Jupyter API的錯位BUG
         msg_type = ''
-        op = ws.send(json.dumps(send_execute_request(code[0][0])))
+        ws.send(json.dumps(send_execute_request(code[0][0])))
         rsp = json.loads(ws.recv())
         msg_type = rsp["msg_type"]
         I_shift = 0
@@ -129,6 +129,8 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             I_shift = 1
         else:
             while True:
+                rsp = json.loads(ws.recv())
+                msg_type = rsp["msg_type"]
                 if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
                     break
 
