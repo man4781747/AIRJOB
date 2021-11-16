@@ -13,7 +13,7 @@ import tokenTransform
 import urllib.parse
 import time
 
-S_airjobUrl = "http://88.248.13.72:8900/AirFlowUploadWeb/testHTML/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
+S_airjobUrl = "http://88.248.13.77:8893/AirFlowUploadWeb/testHTML/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
 
 def send_execute_request(code):
     msg_type = 'execute_request';
