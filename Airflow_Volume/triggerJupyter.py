@@ -44,13 +44,20 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
 
     S_jupyterNotebookUrl = urllib.parse.unquote(S_jupyterNotebookUrl)
 
-    Re_jupyterNotebookUrl = re.search(r"^(?P<jupyter_url>.*)/notebooks/(?P<notebook_path>.*)", S_jupyterNotebookUrl)
-    if not Re_jupyterNotebookUrl:
-        Re_jupyterNotebookUrl = re.search(r"^(?P<jupyter_url>.*)/lab/tree/(?P<notebook_path>.*)", S_jupyterNotebookUrl)
-        if not Re_jupyterNotebookUrl:
-            print('URL Format 錯誤')
-            print(S_jupyterNotebookUrl)
-            raise AirflowFailException("URL 格式錯誤，找不到檔案")
+    L_reList = [
+        r"^(?P<jupyter_url>.*)/notebooks/(?P<notebook_path>.*)",
+        r"^(?P<jupyter_url>.*)/lab.*/tree/(?P<notebook_path>.*)",
+    ]
+
+    for S_reStr in L_reList:
+        Re_jupyterNotebookUrl = re.search(S_reStr, S_jupyterNotebookUrl)
+        if Re_jupyterNotebookUrl:
+            break
+    else:
+        print('URL Format 錯誤')
+        print(S_jupyterNotebookUrl)
+        raise AirflowFailException("URL 格式錯誤，找不到檔案")
+
     print('嘗試執行Jupyter檔案: {}'.format(S_jupyterNotebookUrl))
 
     # try:
@@ -118,22 +125,25 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         L_resultList = []
 
         # 嘗試處裡Jupyter API的錯位BUG
+        print('嘗試與Jupyter溝通並檢查類型')
         msg_type = ''
         ws.send(json.dumps(send_execute_request(code[0][0])))
         rsp = json.loads(ws.recv())
         msg_type = rsp["msg_type"]
         I_shift = 0
         if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
+            print('會位移的類型，嘗試修正')
             code = code + [['',-1]]
             ws.send(json.dumps(send_execute_request(code[1][0])))
             I_shift = 1
         else:
+            print('不會位移的類型')
             while True:
                 rsp = json.loads(ws.recv())
                 msg_type = rsp["msg_type"]
                 if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
                     break
-
+        print('開始執行程式')
         for I_inedx,L_c in enumerate(code):
             if L_c[1] != -1:
                 print(
