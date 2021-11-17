@@ -1317,7 +1317,7 @@
 				<div class="table-card-body" style='position:relative;'>
 					<div class="table-card-header-sheet-list-bar">
 						<p 
-							v-for="S_sheetChoseForList of ['DAG_Infomation', 'Runs_history', 'File_manager']"
+							v-for="S_sheetChoseForList of ['DAG_Infomation', 'Runs_history']"
 							class='sheet-p mouse-pointer' :class="SheetChose==S_sheetChoseForList?'color-w word-b':'color-gary word-b'"
 							@click='DAGDetailSheetClick(S_sheetChoseForList)'
 						>{{S_sheetChoseForList}}</p>
@@ -1567,7 +1567,10 @@
 												<div class='task-select-options' v-if='dagTaskSelecterOpen == true'>
 													<template v-for='logItem of dagRunHistoryChose' v-if='["START","END"].indexOf(logItem.task_id) == -1'>
 														<div class='task-select-option' @click='clickTaskIdOption(logItem)'>
-															{{logItem.task_id}}
+															<div class='state-icon alert-danger' v-if="logItem.state == 'failed'">Fail</div>
+															<div class='state-icon alert-success' v-else-if="logItem.state == 'success'">Success</div>
+															<div class='state-icon alert-warning' 	v-else>{{logItem.state}}</div>
+															<label>{{logItem.task_id}}</label>
 														</div>
 													</template>
 												</div>
@@ -1672,7 +1675,7 @@
 						</div>
 					</div>
 				 
-					<div v-show='SheetChose=="File_manager"'>
+					<div v-show='SheetChose=="File_manager"' v-if='false'>
 						<div class='file-manager-main' v-if='DAGList[DAGDetailOpen] != undefined'>
 							<div :style="'width:'+fileWindowWidth+'px;'" class='file-manager-file-window' v-if='false'>
 								<file-manager-tree v-if='DAGList[DAGDetailOpen].fileManager != undefined'

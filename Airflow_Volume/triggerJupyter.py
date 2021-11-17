@@ -76,6 +76,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
 
     L_reList = [
         r"^(?P<jupyter_url>.*)/notebooks/(?P<notebook_path>.*)",
+        r"^(?P<jupyter_url>.*)/edit/(?P<notebook_path>.*)",
         r"^(?P<jupyter_url>.*)/lab.*/tree/(?P<notebook_path>.*)",
     ]
 
@@ -139,164 +140,234 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
         response = requests.get(url,headers=headers)
         file = json.loads(response.text)
-        code = [ [c['source'],index] for index,c in enumerate(file['content']['cells']) if c['cell_type']=='code' if len(c['source'])>0 ]   
+        if file['type'] == "notebook":
+            S_fileType = 'notebook'
+            print('偵測為Notebook檔案')
+            code = [ [c['source'],index] for index,c in enumerate(file['content']['cells']) if c['cell_type']=='code' if len(c['source'])>0 ]   
+        elif file['type'] == "file" and file['mimetype'] == "text/x-python":
+            S_fileType = 'pyfile'
+            print('偵測為.py檔案')
+            code = file['content']
+        else:
+            raise AirflowFailException("未知格式檔案")
     except Exception as e:
         print(e)
         raise AirflowFailException("獲得NoteBook內容失敗，請確認Token以及URL提供正確")
+    if S_fileType=='notebook':
+        try:
+            print("開始啟動 WebSocket channels")
+            S_ws_url = "ws://{}/api/kernels/".format(S_ip_port)+D_kernel["id"]+"/channels?"+"token={}".format(S_jupyterToken)
+            ws = create_connection(
+                S_ws_url, 
+                header=headers)
+            B_hasFail = False    
 
-    try:
-        print("開始啟動 WebSocket channels")
-        S_ws_url = "ws://{}/api/kernels/".format(S_ip_port)+D_kernel["id"]+"/channels?"+"token={}".format(S_jupyterToken)
-        ws = create_connection(
-            S_ws_url, 
-            header=headers)
-        B_hasFail = False    
+            L_resultList = []
 
-        L_resultList = []
-
-        # 嘗試處裡Jupyter API的錯位BUG
-        print('嘗試與Jupyter溝通並檢查類型')
-        msg_type = ''
-        ws.send(json.dumps(send_execute_request(code[0][0])))
-        rsp = json.loads(ws.recv())
-        msg_type = rsp["msg_type"]
-        I_shift = 0
-        if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
-            print('會位移的類型，嘗試修正')
-            code = code + [['',-1]]
-            ws.send(json.dumps(send_execute_request(code[1][0])))
-            I_shift = 1
-        else:
-            print('不會位移的類型')
-            while True:
-                rsp = json.loads(ws.recv())
-                msg_type = rsp["msg_type"]
-                if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
-                    break
-        print('開始執行程式')
-        for I_inedx,L_c in enumerate(code):
-            if L_c[1] != -1:
-                print(
-                    '\n執行第{}區塊的code:\n================= START =================\n{}\n=================  END  ================='.format(
-                    L_c[1]+1,
-                    L_c[0])
-                )
+            # 嘗試處裡Jupyter API的錯位BUG
+            print('嘗試與Jupyter溝通並檢查類型')
+            msg_type = ''
+            ws.send(json.dumps(send_execute_request(code[0][0])))
+            rsp = json.loads(ws.recv())
+            msg_type = rsp["msg_type"]
+            I_shift = 0
+            if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
+                print('會位移的類型，嘗試修正')
+                code = code + [['',-1]]
+                ws.send(json.dumps(send_execute_request(code[1][0])))
+                I_shift = 1
             else:
-                break
-            if I_shift != 1 or I_inedx not in [1,0] :
-                ws.send(json.dumps(send_execute_request(L_c[0])))
-            try:
-                msg_type = ''
-                S_resultString = "\n執行結果:"
-                file['content']['cells'][L_c[1]]['outputs'] = []
+                print('不會位移的類型')
                 while True:
                     rsp = json.loads(ws.recv())
                     msg_type = rsp["msg_type"]
-                    if msg_type == "stream":
-                        S_resultString += "\n{}".format(rsp["content"]["text"])
-                        file['content']['cells'][L_c[1]]['outputs'].append(
-                            {
-                                'name': rsp["content"]["name"], 
-                                'output_type': 'stream', 
-                                'text': rsp["content"]["text"]
-                            },
-                        )
-                    elif msg_type == "execute_result":
-                        if "image/png" in (rsp["content"]["data"].keys()):
-                            S_resultString += "\n{}".format(rsp["content"]["data"]["image/png"])
-                        else:
-                            S_resultString += "\n{}".format(rsp["content"]["data"]["text/plain"])
-                        if rsp["content"]["data"]["text/plain"] == '<IPython.core.display.Image object>':
-                            file['content']['cells'][L_c[1]]['outputs'].append(
-                                {
-                                    'name': "", 
-                                    'output_type': 'stream', 
-                                    'text': '尚未支援的格式，若有需求請通知工程組'
-                                },
-                            )
-                    elif msg_type == "display_data":
-                        if rsp["content"]["data"].get("text/plain",None) != None:
-                            S_resultString += "\n{}".format(rsp["content"]["data"])
-                            file['content']['cells'][L_c[1]]['outputs'].append(
-                                {
-                                    "output_type": "display_data",
-                                    "data" : rsp["content"]['data'],
-                                    "metadata": rsp["content"]['metadata']
-                                },
-                            )
-                    elif msg_type == "error":
-                        S_resultString += "\n{}".format(rsp["content"]["traceback"])
-                        B_hasFail = True
-                        file['content']['cells'][L_c[1]]['outputs'].append(
-                            {
-                                "output_type": "error",
-                                "ename" : rsp["content"]['ename'],
-                                "evalue": rsp["content"]['evalue'],
-                                "traceback": rsp["content"]['traceback'],
-                            },
-                        )
-
-                    elif msg_type == "execute_reply" and rsp["content"]["status"] == "aborted":
-                        S_resultString += "\n跳過"
-                        file['content']['cells'][L_c[1]]['outputs'].append(
-                            {
-                                'name': "stdout", 
-                                'output_type': 'stream', 
-                                'text': "因前方有錯誤，跳過"
-                            },
-                        )
-
-                    elif msg_type == "status" and rsp["content"]["execution_state"] == "idle":
-                        file['content']['cells'][L_c[1]]['outputs'].append(
-                            {
-                                'output_type': 'display_data', 
-                                'data': {
-                                    "text/html": airjobOutputInfo(S_dagID),
-                                    "text/plain": ["<IPython.core.display.HTML object>"]
-                                },
-                                "metadata": {},
-                            },
-                        )
-                        if L_c[1] != -1:
-                            print(S_resultString)
+                    if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
                         break
-                        
+            print('開始執行程式')
+            for I_inedx,L_c in enumerate(code):
+                if L_c[1] != -1:
+                    print(
+                        '\n執行第{}區塊的code:\n================= START =================\n{}\n=================  END  ================='.format(
+                        L_c[1]+1,
+                        L_c[0])
+                    )
+                else:
+                    break
+                if I_shift != 1 or I_inedx not in [1,0] :
+                    ws.send(json.dumps(send_execute_request(L_c[0])))
+                try:
+                    msg_type = ''
+                    S_resultString = "\n執行結果:"
+                    file['content']['cells'][L_c[1]]['outputs'] = []
+                    while True:
+                        rsp = json.loads(ws.recv())
+                        msg_type = rsp["msg_type"]
+                        if msg_type == "stream":
+                            S_resultString += "\n{}".format(rsp["content"]["text"])
+                            file['content']['cells'][L_c[1]]['outputs'].append(
+                                {
+                                    'name': rsp["content"]["name"], 
+                                    'output_type': 'stream', 
+                                    'text': rsp["content"]["text"]
+                                },
+                            )
+                        elif msg_type == "execute_result":
+                            if "image/png" in (rsp["content"]["data"].keys()):
+                                S_resultString += "\n{}".format(rsp["content"]["data"]["image/png"])
+                            else:
+                                S_resultString += "\n{}".format(rsp["content"]["data"]["text/plain"])
+                            if rsp["content"]["data"]["text/plain"] == '<IPython.core.display.Image object>':
+                                file['content']['cells'][L_c[1]]['outputs'].append(
+                                    {
+                                        'name': "", 
+                                        'output_type': 'stream', 
+                                        'text': '尚未支援的格式，若有需求請通知工程組'
+                                    },
+                                )
+                        elif msg_type == "display_data":
+                            if rsp["content"]["data"].get("text/plain",None) != None:
+                                S_resultString += "\n{}".format(rsp["content"]["data"])
+                                file['content']['cells'][L_c[1]]['outputs'].append(
+                                    {
+                                        "output_type": "display_data",
+                                        "data" : rsp["content"]['data'],
+                                        "metadata": rsp["content"]['metadata']
+                                    },
+                                )
+                        elif msg_type == "error":
+                            S_resultString += "\n{}".format(rsp["content"]["traceback"])
+                            B_hasFail = True
+                            file['content']['cells'][L_c[1]]['outputs'].append(
+                                {
+                                    "output_type": "error",
+                                    "ename" : rsp["content"]['ename'],
+                                    "evalue": rsp["content"]['evalue'],
+                                    "traceback": rsp["content"]['traceback'],
+                                },
+                            )
+
+                        elif msg_type == "execute_reply" and rsp["content"]["status"] == "aborted":
+                            S_resultString += "\n跳過"
+                            file['content']['cells'][L_c[1]]['outputs'].append(
+                                {
+                                    'name': "stdout", 
+                                    'output_type': 'stream', 
+                                    'text': "因前方有錯誤，跳過"
+                                },
+                            )
+
+                        elif msg_type == "status" and rsp["content"]["execution_state"] == "idle":
+                            file['content']['cells'][L_c[1]]['outputs'].append(
+                                {
+                                    'output_type': 'display_data', 
+                                    'data': {
+                                        "text/html": airjobOutputInfo(S_dagID),
+                                        "text/plain": ["<IPython.core.display.HTML object>"]
+                                    },
+                                    "metadata": {},
+                                },
+                            )
+                            if L_c[1] != -1:
+                                print(S_resultString)
+                            break
+                            
+                except:
+                    traceback.print_exc()
+        except Exception as e:
+            try:
+                ws.close()
             except:
-                traceback.print_exc()
-    except Exception as e:
+                pass
+            raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
+        print('所有Code已執行完畢')
+        time.sleep(0.1)            
+        ws.close()
+        time.sleep(0.1)
+        print('刪除kernel: {}'.format(D_kernel['id']))
+        S_URL_DelKernels = base + '/api/kernels/{}?token={}'.format(D_kernel['id'],S_jupyterToken)
+        response = requests.delete(S_URL_DelKernels,headers=headers)
+        print(response)
+        print('刪除kernel成功: {}'.format(D_kernel['id']))
+        # print('刪除session: {}'.format(S_sessionsUuid))
+        # S_URL_DelSession = base + '/api/sessions/{}?token={}'.format(S_sessionsUuid,S_jupyterToken)
+        # response = requests.delete(S_URL_DelSession,headers=headers)
+        # print(response)
+        # print('刪除session成功: {}'.format(S_sessionsUuid))
+        new = {
+            'type': "notebook",
+            'content':file['content'],
+        }
+        print('更新Notebook')
+        url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
+        headers["Content-Type"] =  "application/json"
+        response = requests.put(url,headers=headers,data=json.dumps(new))
+        if B_hasFail:
+            raise AirflowFailException("Task Fail!")
+        return B_hasFail
+
+
+
+
+
+    elif S_fileType=='pyfile':
         try:
-            ws.close()
-        except:
-            pass
-        raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
-    print('所有Code已執行完畢')
-    time.sleep(0.1)            
-    ws.close()
-    time.sleep(0.1)
-    print('刪除kernel: {}'.format(D_kernel['id']))
-    S_URL_DelKernels = base + '/api/kernels/{}?token={}'.format(D_kernel['id'],S_jupyterToken)
-    response = requests.delete(S_URL_DelKernels,headers=headers)
-    print(response)
-    print('刪除kernel成功: {}'.format(D_kernel['id']))
-    # print('刪除session: {}'.format(S_sessionsUuid))
-    # S_URL_DelSession = base + '/api/sessions/{}?token={}'.format(S_sessionsUuid,S_jupyterToken)
-    # response = requests.delete(S_URL_DelSession,headers=headers)
-    # print(response)
-    # print('刪除session成功: {}'.format(S_sessionsUuid))
-    new = {
-        'type': "notebook",
-        'content':file['content'],
-    }
+            print("開始啟動 WebSocket channels")
+            S_ws_url = "ws://{}/api/kernels/".format(S_ip_port)+D_kernel["id"]+"/channels?"+"token={}".format(S_jupyterToken)
+            ws = create_connection(
+                S_ws_url, 
+                header=headers)
+            print("code:\n================= START =================\n{}\n=================  END  =================".format(code))
+            ws.send(json.dumps(send_execute_request(code)))
+            B_hasFail = False  
+            I_inextGet = 0     
+            S_resultString = "\n執行結果:"
+            while True:
+                I_inextGet += 1
+                rsp = json.loads(ws.recv())
+                msg_type = rsp["msg_type"]
+                if msg_type == "stream":
+                    S_resultString += "\n{}".format(rsp["content"]["text"])
+                elif msg_type == "execute_result":
+                    if "image/png" in (rsp["content"]["data"].keys()):
+                        S_resultString += "\n{}".format(rsp["content"]["data"]["image/png"])
+                    else:
+                        S_resultString += "\n{}".format(rsp["content"]["data"]["text/plain"])
+                elif msg_type == "display_data":
+                    if rsp["content"]["data"].get("text/plain",None) != None:
+                        S_resultString += "\n{}".format(rsp["content"]["data"])
+                elif msg_type == "error":
+                    S_resultString += "\n{}".format(rsp["content"]["traceback"])
+                    B_hasFail = True
+                elif msg_type == "execute_reply" and rsp["content"]["status"] == "aborted":
+                    S_resultString += "\n跳過"
+                elif msg_type == "status" and rsp["content"]["execution_state"] == "idle" and I_inextGet!=1:
+                    print(S_resultString)
+                    break
+        except Exception as e:
+            try:
+                ws.close()
+            except:
+                pass
+        
+        print('所有Code已執行完畢')
+        time.sleep(0.1)            
+        ws.close()
+        time.sleep(0.1)
+        print('刪除kernel: {}'.format(D_kernel['id']))
+        S_URL_DelKernels = base + '/api/kernels/{}?token={}'.format(D_kernel['id'],S_jupyterToken)
+        response = requests.delete(S_URL_DelKernels,headers=headers)
+        print(response)
+        print('刪除kernel成功: {}'.format(D_kernel['id']))
+        # print('刪除session: {}'.format(S_sessionsUuid))
+        # S_URL_DelSession = base + '/api/sessions/{}?token={}'.format(S_sessionsUuid,S_jupyterToken)
+        # response = requests.delete(S_URL_DelSession,headers=headers)
+        # print(response)
+        # print('刪除session成功: {}'.format(S_sessionsUuid))
 
-    url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
-    headers["Content-Type"] =  "application/json"
-    response = requests.put(url,headers=headers,data=json.dumps(new))
-
-
-    
-    if B_hasFail:
-        raise AirflowFailException("Task Fail!")
-    return B_hasFail
+        
+        if B_hasFail:
+            raise AirflowFailException("Task Fail!")
+        return B_hasFail
 
     
 if __name__=='__main__':
