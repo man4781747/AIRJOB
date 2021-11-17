@@ -70,8 +70,8 @@ var VueSetting_dagInfoView = {
 
 		dagTaskSelecterOpen: false,
 
-		dagRunHistoryChose: null,
-		dagRunHistoryTaskIdChose: {},
+		dagRunHistoryChose: {},
+		dagRunHistoryTaskIndexChose: null,
 		dagRunHistoryLogContentChose: -1,
 		logDataRequestNum: '',
 		dagRunIDOpen: '',
@@ -80,6 +80,15 @@ var VueSetting_dagInfoView = {
 	},
   
 	computed: {
+		dagRunHistoryTaskIdChose(){
+			try{
+				if (this.dagRunHistoryChose[this.dagRunHistoryTaskIndexChose] != undefined){
+					return this.dagRunHistoryChose[this.dagRunHistoryTaskIndexChose]
+				}
+				return {}
+			}
+			catch{return {}}
+		},
 		getChosedFiles(){
 			if (this.folderChoseItem['files'] == undefined){
 				return []
@@ -146,10 +155,18 @@ var VueSetting_dagInfoView = {
 						myJson['result']['task_instances']
 					)
 					VueSetting.dagRunHistoryStatus = 'Open'
-					VueSetting.dagRunHistoryTaskIdChose = {}
+					VueSetting.dagRunHistoryTaskIndexChose = null
 					VueSetting.dagRunHistoryLogContentChose = 0,
 					VueSetting.dagRunIDOpen = dag_run_id
 					VueSetting.dagRunHistoryChose = myJson['result']['task_instances']
+					for (D_runInfoChose of myJson['result']['task_instances']){
+						if (D_runInfoChose.state == undefined){
+							console.log('持續更新 : '+dag_run_id)
+							VueSetting.autoUploadDAGRunInfo(dag_run_id)
+							break
+						}
+					}
+
 				}
 			});
 		},
@@ -164,27 +181,59 @@ var VueSetting_dagInfoView = {
 				return response.json();
 			})
 			.then(function(myJson) {
-				// console.log(myJson);
-				// console.log(uuid_this_requests);
-				if (VueSetting.logDataRequestNum == uuid_this_requests){
+				if (VueSetting.dagRunIDOpen == dag_run_id){
 					Vue.set(
 						VueSetting.DAGList[VueSetting.DAGDetailOpen].dagRuns.total[dag_run_id],
 						'Logs',
 						myJson['result']['task_instances']
 					)
-					VueSetting.dagRunHistoryTaskIdChose = {}
-					VueSetting.dagRunHistoryLogContentChose = 0,
 					VueSetting.dagRunHistoryChose = myJson['result']['task_instances']
+					for (D_runInfoChose of myJson['result']['task_instances']){
+						if (D_runInfoChose.state == undefined){
+							console.log('持續更新 : '+dag_run_id)
+							VueSetting.autoUploadDAGRunInfo(dag_run_id)
+							break
+						}
+					}
 				}
+			});
+		},
+
+		autoUploadDAGRunInfo(dag_run_id){
+			var dag_run_id = dag_run_id
+			uploadFetch = fetch('/AirFlowUploadWeb/API/v1/GetDAGRunLogByRunID/'+this.DAGDetailOpen+'/'+dag_run_id+'/', {
+			}).then(function(response) {
+				return response.json();
+			})
+			.then(function(myJson) {
+				if (VueSetting.dagRunIDOpen == dag_run_id){
+					Vue.set(
+						VueSetting.DAGList[VueSetting.DAGDetailOpen].dagRuns.total[dag_run_id],
+						'Logs',
+						myJson['result']['task_instances']
+					)
+					VueSetting.dagRunHistoryChose = myJson['result']['task_instances']
+					for (D_runInfoChose of myJson['result']['task_instances']){
+						if (D_runInfoChose.state == undefined){
+							setTimeout(function() {
+								console.log('持續更新 : '+dag_run_id)
+								VueSetting.autoUploadDAGRunInfo(dag_run_id)
+							}, 1000);
+							break
+						}
+					}
+				}
+				else{console.log('停止更新 : '+dag_run_id)}
 			});
 		},
 
 		closeDagLogWindow(){
 			this.dagRunHistoryStatus = 'Close'
-			this.dagRunHistoryTaskIdChose = {}
+			this.dagRunHistoryTaskIndexChose = null
 			this.dagRunHistoryLogContentChose = 0,
 			this.dagRunHistoryChose = {}
 			this.logDataRequestNum = ''
+			this.dagRunIDOpen = ''
 		},
 
 		closeDagDetailWindow(){
@@ -396,8 +445,8 @@ var VueSetting_dagInfoView = {
 			})
 		},
 
-		clickTaskIdOption(logItem){
-			this.dagRunHistoryTaskIdChose = logItem
+		clickTaskIdOption(index){
+			this.dagRunHistoryTaskIndexChose = index
 			this.dagRunHistoryLogContentChose = 0
 		},
 
