@@ -74,6 +74,7 @@ var VueSetting_dagInfoView = {
 		dagRunHistoryTaskIdChose: {},
 		dagRunHistoryLogContentChose: -1,
 		logDataRequestNum: '',
+		dagRunIDOpen: '',
 
 		deleteDAGCheckWindowShow: false,
 	},
@@ -125,13 +126,13 @@ var VueSetting_dagInfoView = {
 			this.updateUrlParas()
 		},
 
-		clickDAGRunIDRow(runsInfo){
-			var runsInfo = runsInfo
+		clickDAGRunIDRow(dag_run_id){
+			var dag_run_id = dag_run_id
 			this.dagRunHistoryStatus = 'Update'
 			var uuid_this_requests = _uuid()
 			this.logDataRequestNum = uuid_this_requests
 
-			uploadFetch = fetch('/AirFlowUploadWeb/API/v1/GetDAGRunLogByRunID/'+this.DAGDetailOpen+'/'+runsInfo.dag_run_id+'/', {
+			uploadFetch = fetch('/AirFlowUploadWeb/API/v1/GetDAGRunLogByRunID/'+this.DAGDetailOpen+'/'+dag_run_id+'/', {
 			}).then(function(response) {
 				return response.json();
 			})
@@ -140,11 +141,37 @@ var VueSetting_dagInfoView = {
 				// console.log(uuid_this_requests);
 				if (VueSetting.logDataRequestNum == uuid_this_requests){
 					Vue.set(
-						runsInfo,
+						VueSetting.DAGList[VueSetting.DAGDetailOpen].dagRuns.total[dag_run_id],
 						'Logs',
 						myJson['result']['task_instances']
 					)
 					VueSetting.dagRunHistoryStatus = 'Open'
+					VueSetting.dagRunHistoryTaskIdChose = {}
+					VueSetting.dagRunHistoryLogContentChose = 0,
+					VueSetting.dagRunIDOpen = dag_run_id
+					VueSetting.dagRunHistoryChose = myJson['result']['task_instances']
+				}
+			});
+		},
+
+		uploadDAGRunInfo(dag_run_id){
+			var dag_run_id = dag_run_id
+			var uuid_this_requests = _uuid()
+			this.logDataRequestNum = uuid_this_requests
+
+			uploadFetch = fetch('/AirFlowUploadWeb/API/v1/GetDAGRunLogByRunID/'+this.DAGDetailOpen+'/'+dag_run_id+'/', {
+			}).then(function(response) {
+				return response.json();
+			})
+			.then(function(myJson) {
+				// console.log(myJson);
+				// console.log(uuid_this_requests);
+				if (VueSetting.logDataRequestNum == uuid_this_requests){
+					Vue.set(
+						VueSetting.DAGList[VueSetting.DAGDetailOpen].dagRuns.total[dag_run_id],
+						'Logs',
+						myJson['result']['task_instances']
+					)
 					VueSetting.dagRunHistoryTaskIdChose = {}
 					VueSetting.dagRunHistoryLogContentChose = 0,
 					VueSetting.dagRunHistoryChose = myJson['result']['task_instances']
@@ -245,9 +272,18 @@ var VueSetting_dagInfoView = {
 				// console.log(myJson)
 				if (myJson['DAG_Runs'] != undefined){
 					let DAG_RunsList = {
-						'total' : myJson['DAG_Runs']['dag_runs'],
+						'total' : {},
 						'groups' : {}
 					}
+					for (D_runInfo of myJson['DAG_Runs']['dag_runs']){
+						DAG_RunsList['total'][D_runInfo.dag_run_id] = D_runInfo
+					}
+
+
+					// let DAG_RunsList = {
+					// 	'total' : myJson['DAG_Runs']['dag_runs'],
+					// 	'groups' : {}
+					// }
 					VueSetting.DAGList[S_dagID]['updateRunsList'] = false
 					Vue.set(
 						VueSetting.DAGList[S_dagID],

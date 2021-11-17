@@ -1348,6 +1348,7 @@
 									<div class="table-card-header color-g-b" style='display: flex;'>
 										<h3 class='table-card-title flex-80' style='display: flex !important;'>{{DAGDetailOpen}}</h3>
 										<div style='display:flex;'>
+											<i class="far fas fa-play reload-btn btn btn-info" @click="clickTrigerDAGRunButton(DAGSettingInfo.DAGDetailInfo.DAG_ID)"></i>
 											<i class="far fa-trash-alt reload-btn btn btn-info" @click="clickDeleteDAGButton()"></i>
 											<a :href="airflowURL+'/tree?dag_id='+DAGDetailOpen" target="_blank"><i class="fas fa-globe reload-btn btn btn-info"></i></a>
 											<i class="far fa-edit reload-btn btn btn-info" @click="openDAGEditerWithDAGSettingInfo()"></i>
@@ -1536,9 +1537,14 @@
 									<div class='text-v-center'>
 										<label style="font-size: 1.75rem;font-weight: 800;padding-left: .5rem;">排程紀錄</label>
 									</div>
-									<i class="fas fa-reply reload-btn btn btn-default"
-									@click="closeDagLogWindow()"	
-									></i>
+									<div>
+										<i class="fas fa-sync-alt reload-btn btn btn-default" 
+										@click="uploadDAGRunInfo(dagRunIDOpen)"
+										></i>
+										<i class="fas fa-reply reload-btn btn btn-default"
+										@click="closeDagLogWindow()"	
+										></i>
+									</div>
 								</div>
 								<div class="table-card-body">
 									<div class='form-group row'>
@@ -1569,7 +1575,8 @@
 														<div class='task-select-option' @click='clickTaskIdOption(logItem)'>
 															<div class='state-icon alert-danger' v-if="logItem.state == 'failed'">Fail</div>
 															<div class='state-icon alert-success' v-else-if="logItem.state == 'success'">Success</div>
-															<div class='state-icon alert-warning' 	v-else>{{logItem.state}}</div>
+															<div class='state-icon alert-waiting' v-else-if="logItem.state == undefined">Wait</div>
+															<div class='state-icon alert-warning' v-else>{{logItem.state}}</div>
 															<label>{{logItem.task_id}}</label>
 														</div>
 													</template>
@@ -1625,14 +1632,14 @@
 									</tr>
 								</thead>
 								<tbody>
-									<template v-for="(runsInfo, index) of DAGList[DAGDetailOpen].dagRuns.total">
+									<template v-for="(runsInfo,runId, index) of DAGList[DAGDetailOpen].dagRuns.total">
 										<tr>
 											<td><a 
 												:href="airflowURL+'/graph?dag_id='+DAGDetailOpen+'&start_date='+runsInfo.start_date"
 												target='_blank'
 											>{{index+1}}</a></td>
 											<td>{{runsInfo.state}}</td>
-											<td @click="clickDAGRunIDRow(runsInfo)" class='link-style-font mouse-pointer'>{{new Date(runsInfo.start_date).format("(w) yyyy-MM-dd hh:mm:ss")}}</td>
+											<td @click="clickDAGRunIDRow(runId)" class='link-style-font mouse-pointer'>{{new Date(runsInfo.start_date).format("(w) yyyy-MM-dd hh:mm:ss")}}</td>
 										</tr>
 
 									</template>
