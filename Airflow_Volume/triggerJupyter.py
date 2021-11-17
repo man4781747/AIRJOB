@@ -13,10 +13,10 @@ import tokenTransform
 import urllib.parse
 import time
 
-S_airjobUrl = "http://88.248.13.72:8900/AirFlowUploadWeb/testHTML/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
+S_airjobUrl = "http://35.194.167.48:8000/AirFlowUploadWeb/testHTML/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
 
 def send_execute_request(code):
-    msg_type = 'execute_request';
+    msg_type = 'execute_request'
     content = { 'code' : code, 'silent':False }
     hdr = { 'msg_id' : uuid.uuid1().hex, 
         'username': 'test', 
@@ -28,6 +28,36 @@ def send_execute_request(code):
         'metadata': {},
         'content': content }
     return msg
+
+def airjobOutputInfo(S_dagID):
+    L_returnList = [
+    "<style>\n",
+    ".airjob-infos-window {\n",
+    "    margin-top: .5rem;border-radius: 10px;box-shadow: 2px 2px 2px 1px rgb(23 162 184 / 0%);transition:all .5s;cursor: pointer;\n",
+    "}\n",
+    ".airjob-infos-window:hover {\n",
+    "    box-shadow: 2px 2px 2px 1px rgb(23 162 184 / 40%);\n",
+    "}\n",
+    ".airjob-infos-bar {\n",
+    "    background-color:#17a2b8;height:10px;border-top-right-radius: 10px;border-top-left-radius: 10px;\n",
+    "}\n",
+    ".airjob-infos-contents {\n",
+    "    border: 1px #17a2b8 solid;padding: 0.8rem 0.5rem;border-bottom-right-radius: 10px;border-bottom-left-radius: 10px;\n",
+    "}\n",
+    ".airjob-infos-title {\n",
+    "    font-weight:600;font-size:2rem;\n",
+    "}\n",
+    "</style>\n",
+    "<div class=\"airjob-infos-window\">\n",
+    "    <div class=\"airjob-infos-bar\"></div>\n",
+    "    <div class=\"airjob-infos-contents\">\n",
+    "        <div class=\"airjob-infos-title\">以上由AIRJOB觸發並更新</div>\n",
+    "        <div>觸發時間: {}</div>\n".format(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f")),
+    "        <a href='{url}' target=_blank>AIRJOB 網址:{url}</a>\n".format(url = S_airjobUrl.format(S_dagID.split('_')[0],S_dagID)),
+    "    </div>\n",
+    "</div>",
+    ]
+    return L_returnList
 
 def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     if S_jupyterNotebookUrl == '':
@@ -158,87 +188,75 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             try:
                 msg_type = ''
                 S_resultString = "\n執行結果:"
+                file['content']['cells'][L_c[1]]['outputs'] = []
                 while True:
                     rsp = json.loads(ws.recv())
                     msg_type = rsp["msg_type"]
                     if msg_type == "stream":
                         S_resultString += "\n{}".format(rsp["content"]["text"])
-                        file['content']['cells'][L_c[1]]['outputs'] = [
+                        file['content']['cells'][L_c[1]]['outputs'].append(
                             {
-                            'name': rsp["content"]["name"], 
-                            'output_type': 'stream', 
-                            'text': rsp["content"]["text"]
+                                'name': rsp["content"]["name"], 
+                                'output_type': 'stream', 
+                                'text': rsp["content"]["text"]
                             },
-                            {
-                            'name': 'stdout', 
-                            'output_type': 'stream', 
-                            'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n===== AIRJOB 網址:{}\n".format(
-                                datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"),
-                                S_airjobUrl.format(S_dagID.split('_')[0],S_dagID)
-                                )
-                            },
-                        ]
+                        )
                     elif msg_type == "execute_result":
                         if "image/png" in (rsp["content"]["data"].keys()):
                             S_resultString += "\n{}".format(rsp["content"]["data"]["image/png"])
                         else:
                             S_resultString += "\n{}".format(rsp["content"]["data"]["text/plain"])
+                        if rsp["content"]["data"]["text/plain"] == '<IPython.core.display.Image object>':
+                            file['content']['cells'][L_c[1]]['outputs'].append(
+                                {
+                                    'name': "", 
+                                    'output_type': 'stream', 
+                                    'text': '尚未支援的格式，若有需求請通知工程組'
+                                },
+                            )
                     elif msg_type == "display_data":
-                        S_resultString += "\n{}".format(rsp["content"]["data"]["image/png"])
-                        file['content']['cells'][L_c[1]]['outputs'] = [
-                            {
-                            "output_type": "display_data",
-                            "data" : rsp["content"]['data'],
-                            "metadata": rsp["content"]['metadata']
-                            },
-                            {
-                            'name': 'stdout', 
-                            'output_type': 'stream', 
-                            'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n===== AIRJOB 網址:{}\n".format(
-                                datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"),
-                                S_airjobUrl.format(S_dagID.split('_')[0],S_dagID)
-                                )
-                            },
-                        ]
+                        if rsp["content"]["data"].get("text/plain",None) != None:
+                            S_resultString += "\n{}".format(rsp["content"]["data"])
+                            file['content']['cells'][L_c[1]]['outputs'].append(
+                                {
+                                    "output_type": "display_data",
+                                    "data" : rsp["content"]['data'],
+                                    "metadata": rsp["content"]['metadata']
+                                },
+                            )
                     elif msg_type == "error":
                         S_resultString += "\n{}".format(rsp["content"]["traceback"])
                         B_hasFail = True
-                        file['content']['cells'][L_c[1]]['outputs'] = [                        
+                        file['content']['cells'][L_c[1]]['outputs'].append(
                             {
-                            "output_type": "error",
-                            "ename" : rsp["content"]['ename'],
-                            "evalue": rsp["content"]['evalue'],
-                            "traceback": rsp["content"]['traceback'],
+                                "output_type": "error",
+                                "ename" : rsp["content"]['ename'],
+                                "evalue": rsp["content"]['evalue'],
+                                "traceback": rsp["content"]['traceback'],
                             },
-                            {
-                            'name': 'stdout', 
-                            'output_type': 'stream', 
-                            'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n===== AIRJOB 網址:{}\n".format(
-                                datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"),
-                                S_airjobUrl.format(S_dagID.split('_')[0],S_dagID)
-                                )
-                            },
-                        ]
+                        )
 
                     elif msg_type == "execute_reply" and rsp["content"]["status"] == "aborted":
                         S_resultString += "\n跳過"
-                        file['content']['cells'][L_c[1]]['outputs'] = [                        
+                        file['content']['cells'][L_c[1]]['outputs'].append(
                             {
-                            'name': "stdout", 
-                            'output_type': 'stream', 
-                            'text': "因前方有錯誤，跳過"
+                                'name': "stdout", 
+                                'output_type': 'stream', 
+                                'text': "因前方有錯誤，跳過"
                             },
-                            {
-                            'name': 'stdout', 
-                            'output_type': 'stream', 
-                            'text': "\n===== 以上由AIRJOB觸發並更新 =====\n===== 觸發時間: {}\n===== AIRJOB 網址:{}\n".format(
-                                datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"),
-                                S_airjobUrl.format(S_dagID.split('_')[0],S_dagID)
-                                )
-                            },
-                        ]
+                        )
 
                     elif msg_type == "status" and rsp["content"]["execution_state"] == "idle":
+                        file['content']['cells'][L_c[1]]['outputs'].append(
+                            {
+                                'output_type': 'display_data', 
+                                'data': {
+                                    "text/html": airjobOutputInfo(S_dagID),
+                                    "text/plain": ["<IPython.core.display.HTML object>"]
+                                },
+                                "metadata": {},
+                            },
+                        )
                         if L_c[1] != -1:
                             print(S_resultString)
                         break
@@ -274,6 +292,8 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     headers["Content-Type"] =  "application/json"
     response = requests.put(url,headers=headers,data=json.dumps(new))
 
+
+    
     if B_hasFail:
         raise AirflowFailException("Task Fail!")
     return B_hasFail
