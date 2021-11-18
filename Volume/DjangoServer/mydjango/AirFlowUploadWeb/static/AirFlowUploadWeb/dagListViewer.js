@@ -75,17 +75,15 @@ var VueSetting_dagListViewer = {
 		
 		updateDAGRunsStatisticsInfoByDagID(S_dagID){
 			let params = new FormData();
+			var S_dagID = S_dagID
 			if (this.DAGList[S_dagID]['updateRunsStatistics'] == true){
 				return null
 			}
-
-
 			Vue.set(
 				this.DAGList[S_dagID],
 				'updateRunsStatistics',
 				true
 			)
-
 			params.append("DAG_ID", S_dagID)
 			fetch("/AirFlowUploadWeb/GetDAGRunsStatistics/", {
 				method: 'POST',
@@ -110,6 +108,18 @@ var VueSetting_dagListViewer = {
 					'LastRun',
 					myJson['LastRun']
 				)
+				
+				if (VueSetting.NowPage=="dagListViewer" &
+					VueSetting.DAGList[S_dagID].is_paused == false &
+					new Set(['queued','scheduled','running']).has(myJson['LastRun'].Result.state)
+				){
+					setTimeout(function() {
+						console.log('持續更新Last Run : '+S_dagID)
+						VueSetting.updateDAGRunsStatisticsInfoByDagID(S_dagID)
+					}, 2000);
+				}
+
+
 			})
 		},
 
