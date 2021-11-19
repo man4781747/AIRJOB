@@ -55,6 +55,7 @@ urlpatterns = [
 
     path(r'API/v1/<groupName>/GetYesterdayFailTaskList_v1/', views.GetYesterdayFailTaskList_v1),
 
+    path(r'API/v1/<groupName>/Get7DayFailTaskList/', views.Get7DayFailTaskList_v1),
 
     # ======================
     # ======= v0 API =======
