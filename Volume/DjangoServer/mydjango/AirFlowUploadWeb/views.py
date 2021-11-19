@@ -26,7 +26,7 @@ import urllib.parse
 airflowConnecter = connectAirflow.airflowConnecter(
     'TestAccount@gmail.com',
     'password',
-    'http://airflow:8080'
+    'http://airflow-container:8080'
 )
 
 S_dagsFolderPath = r'/airflowDagsFolder/dagBuilder'
