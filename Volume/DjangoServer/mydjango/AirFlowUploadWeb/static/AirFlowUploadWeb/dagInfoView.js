@@ -137,6 +137,10 @@ var VueSetting_dagInfoView = {
 
 		clickDAGRunIDRow(dag_run_id){
 			var dag_run_id = dag_run_id
+
+			this.urlParas['dag_run_id'] = dag_run_id
+			this.updateUrlParas()
+
 			this.dagRunHistoryStatus = 'Update'
 			var uuid_this_requests = _uuid()
 			this.logDataRequestNum = uuid_this_requests
@@ -149,11 +153,11 @@ var VueSetting_dagInfoView = {
 				// console.log(myJson);
 				// console.log(uuid_this_requests);
 				if (VueSetting.logDataRequestNum == uuid_this_requests){
-					Vue.set(
-						VueSetting.DAGList[VueSetting.DAGDetailOpen].dagRuns.total[dag_run_id],
-						'Logs',
-						myJson['result']['task_instances']
-					)
+					// Vue.set(
+					// 	VueSetting.DAGList[VueSetting.DAGDetailOpen].dagRuns.total[dag_run_id],
+					// 	'Logs',
+					// 	myJson['result']['task_instances']
+					// )
 					VueSetting.dagRunHistoryStatus = 'Open'
 					VueSetting.dagRunHistoryTaskIndexChose = null
 					VueSetting.dagRunHistoryLogContentChose = 0,
@@ -168,7 +172,7 @@ var VueSetting_dagInfoView = {
 					}
 
 				}
-			});
+			})
 		},
 
 		uploadDAGRunInfo(dag_run_id){

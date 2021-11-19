@@ -1566,10 +1566,12 @@
 										<label class='col-form-label text-v-center'>流程選擇</label>
 										<div class='col-sm-10'>
 											<div class='task-select' v-if='dagRunHistoryChose.length > 2'>
-												<button class='btn task-select-view btn-active' @click.stop="dagTaskSelecterOpen = true">
-													{{dagRunHistoryTaskIdChose.task_id?dagRunHistoryTaskIdChose.task_id:"按此選擇想要的流程"}}
-													<i class="fas fa-caret-down" style='margin: 0;padding-left: .5rem;color: #f8f9fa;'></i>
-												</button>
+												<div>
+													<button class='btn task-select-view btn-active' @click.stop="dagTaskSelecterOpen = true">
+														{{dagRunHistoryTaskIdChose.task_id?dagRunHistoryTaskIdChose.task_id:"按此選擇想要的流程"}}
+														<i class="fas fa-caret-down" style='margin: 0;padding-left: .5rem;color: #f8f9fa;'></i>
+													</button>
+												</div>
 												<div class='task-select-options' v-if='dagTaskSelecterOpen == true'>
 													<template v-for='(logItem,index) in dagRunHistoryChose' v-if='["START","END"].indexOf(logItem.task_id) == -1'>
 														<div class='task-select-option' @click='clickTaskIdOption(index)'>
@@ -1593,7 +1595,7 @@
 												<template v-for='(D_log,index) of dagRunHistoryTaskIdChose.Logs'>
 													<input type="radio" :id="dagRunHistoryTaskIdChose.task_id+index" :value="index" v-model="dagRunHistoryLogContentChose">
 													<label class="mouse-pointer" :for="dagRunHistoryTaskIdChose.task_id+index" 
-													:class="(dagRunHistoryLogContentChose+'')==(index+'')?'log-chose-list-chosed':''">{{index+1}}</label>
+													:class="(dagRunHistoryLogContentChose+'')==(index+'')?'log-chose-list-chosed':''">{{index+1}}({{dagRunHistoryTaskIdChose.state}})</label>
 												</template>
 											</div>
 											<template>

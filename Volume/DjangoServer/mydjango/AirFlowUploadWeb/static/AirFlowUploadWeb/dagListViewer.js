@@ -124,10 +124,22 @@ var VueSetting_dagListViewer = {
 		},
 
 		DAGInfoViewOpen(dag_id){
-			this.urlParas = {
+			newParas = {
 				'Page': "dagInfoView",
 				'dag_id': dag_id,
+				'SheetChose': this.urlParas['SheetChose']
 			}
+
+			if (['DAG_Infomation','Runs_history'].indexOf(this.urlParas['SheetChose'])==-1){
+				newParas['SheetChose'] = 'DAG_Infomation'
+			} else if (this.urlParas['SheetChose'] == 'Runs_history'){
+				if (this.urlParas['dag_run_id'] != undefined){
+					newParas['dag_run_id'] = this.urlParas['dag_run_id']
+				}
+			}
+
+			this.urlParas = newParas
+
 			this.updateUrlParas()
 			this.DAGDetailOpen = dag_id
 			this.loadExistDAGSettingInfo(dag_id)
@@ -136,6 +148,11 @@ var VueSetting_dagListViewer = {
 			this.getFileManagerInfoByDAGId(dag_id)
 			this.closeDagLogWindow()
 			this.NowPage="dagInfoView"
+			this.SheetChose=this.urlParas['SheetChose']
+			if (this.urlParas['dag_run_id'] != undefined){
+				this.clickDAGRunIDRow(this.urlParas['dag_run_id'])
+			}
+		
 		},
 
 		updateDAGPauseStatus(dag_id){

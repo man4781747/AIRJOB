@@ -2034,7 +2034,8 @@ textarea:focus-visible {
 
 .log-chose-list label {
     display: inline-block;
-    width: 3rem;
+    /* width: 3rem; */
+    padding: 0 .5rem;
     height: 3rem;
     font-size: 1.5rem;
     background-color: #d9d9d9;
