@@ -29,6 +29,17 @@ services:
         restart: always
         tty: true
 
+    jupyter-lab:
+        container_name: jupyter_lab_server
+        build: ./DockerFiles/JupyterLabServer
+        ports:
+            - 8003:8003
+        command: jupyter lab --port 8003 --ip 0.0.0.0 --NotebookApp.token=password --allow-root
+        volumes:
+            - ./Jupyter_Volume:/JupyterLabServer
+        restart: always
+        tty: true
+
     airflow:
         container_name: airflow
         build: ./DockerFiles/AirFlow

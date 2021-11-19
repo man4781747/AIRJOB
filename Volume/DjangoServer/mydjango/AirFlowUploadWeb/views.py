@@ -362,6 +362,101 @@ def GetYesterdayFailTaskList_v1(request, groupName):
             'mseeage': str(e),
         })
 
+def Get7DayFailTaskList_v1(request, groupName):
+    try:
+        S_projectFolder = os.path.join(S_dagsFolderPath, groupName)
+        D_failResult = {}
+        for S_dag_id in os.listdir(S_projectFolder):
+            S_settingFilePath = os.path.join(S_projectFolder, S_dag_id, '.setting', 'dagSetting.json')
+            if not os.path.exists(S_settingFilePath):
+                continue
+            S_dagFilePath = os.path.join(S_projectFolder, S_dag_id, 'DAG_buildByWebBuilder.py')
+            if not os.path.exists(S_dagFilePath):
+                continue
+            Obj_dagFile = dagFile.dagSettingFileManager()
+            D_dagSettingFileManager = Obj_dagFile.LoadDagSettingFile(S_settingFilePath)
+
+            S_start_date_lte = "2030-01-01T00:00:00.000000+08:00"
+            S_7Day = "{}T00:00:00.000000+08:00".format(
+                (datetime.datetime.now()-datetime.timedelta(days=7)).strftime('%Y-%m-%d')
+            )
+            D_failResult[S_dag_id] = {
+                'DAG_ID': S_dag_id,
+                'failNum': 0,
+                'LastFail': None,
+                'owner': D_dagSettingFileManager.get('Owner','出了點意外'),
+                'scheduleString': D_dagSettingFileManager.get('ScheduleString','出了點意外'),
+            }
+            print(S_dag_id ,' - ',S_7Day, " ~ " , S_start_date_lte)
+            D_result = airflowConnecter.getDAGRunsList(
+                S_DAG_id=S_dag_id,
+                limit=100,
+                # order_by=['-start_date'],
+                start_date_gte=S_7Day,
+                start_date_lte=S_start_date_lte
+            )
+            D_result['dag_runs'] = OrderDAGRunsByStartTime(D_result['dag_runs'])
+            I_count = 0
+            L_failList = []
+            while D_result.get('dag_runs', []) != [] and I_count <= 30:
+                I_count += 1
+                for runInfo in D_result['dag_runs']:
+                    if runInfo.get("state", '').lower() == 'failed':
+                        L_failList.append(runInfo)
+
+                S_lastDatetime = D_result['dag_runs'][-1].get('start_date', '1990-01-01T00:00:00.000000+08:00')
+                re_lastDatetime = re.search(
+                    "(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+)T(?P<hour>\d+):(?P<minute>\d+):(?P<second>\d+)(\.(?P<mill_sec>\d+))?[+-](?P<difference_hour>\d+):(?P<difference_min>\d+)",
+                    S_lastDatetime
+                )
+                if re_lastDatetime:
+                    I_mill_sec = re_lastDatetime.group('mill_sec')
+                    if I_mill_sec:
+                        I_mill_sec = int(I_mill_sec)
+                    else:
+                        I_mill_sec = 0
+                    DT_lastDatetime = datetime.datetime(
+                        int(re_lastDatetime.group('year')),
+                        int(re_lastDatetime.group('month')),
+                        int(re_lastDatetime.group('day')),
+                        int(re_lastDatetime.group('hour'))+int(re_lastDatetime.group('difference_hour')),
+                        int(re_lastDatetime.group('minute'))+int(re_lastDatetime.group('difference_min')),
+                        int(re_lastDatetime.group('second')),
+                        I_mill_sec, 
+                    ) 
+                else:
+                    DT_lastDatetime = datetime.datetime(1990,1,1)
+                S_start_date_lte = (DT_lastDatetime-datetime.timedelta(milliseconds=1)).strftime(
+                    '%Y-%m-%dT%H:%M:%S.%f'
+                )
+                S_start_date_lte = "{}+08:00".format(S_start_date_lte)
+
+                D_result = airflowConnecter.getDAGRunsList(
+                    S_DAG_id=S_dag_id,
+                    limit=100,
+                    # order_by=['-start_date'],
+                    start_date_gte=S_7Day,
+                    start_date_lte=S_start_date_lte
+                )
+                D_result['dag_runs'] = OrderDAGRunsByStartTime(D_result['dag_runs'])
+            D_failResult[S_dag_id]['failNum'] = len(L_failList)
+            if L_failList == []:
+                del D_failResult[S_dag_id]
+            else:
+                D_failResult[S_dag_id]['LastFail'] = L_failList[0]
+
+        return JsonResponse({
+            'result': 'Success',
+            'info': D_failResult,
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'result': 'Fail',
+            'mseeage': str(e),
+        })
+
+
 def GetDAGOnAirjob(request):
     pass
 
