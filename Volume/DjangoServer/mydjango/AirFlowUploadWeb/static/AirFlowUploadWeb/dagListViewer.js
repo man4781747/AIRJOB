@@ -9,7 +9,7 @@ var VueSetting_dagListViewer = {
 	computed: {
 		projectName(){
 			projectName = location.pathname.match(
-				/\/AirFlowUploadWeb\/testHTML\/(\S*)\//
+				/\/AIRJOB\/(\S*)\//
 			)[1]
 			return projectName
 		},

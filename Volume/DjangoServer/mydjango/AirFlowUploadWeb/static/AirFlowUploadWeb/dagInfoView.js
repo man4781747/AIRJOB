@@ -43,9 +43,6 @@ Vue.component("file-manager-tree", {
 	},
 	created: function() { 
 	},
-
-
-
 })
 
 

@@ -8,9 +8,9 @@ from . import views
 2. GetOneBoardName/ 傳送單個討論版名稱給使用者
 '''
 urlpatterns = [
-    path(r'mainHTML/', views.mainHTML),
-    path(r'testHTML/<groupName>/', views.testHTML),
-    path(r'testHTML/', views.Airflow_ProjectManager_HTML),
+    # path(r'mainHTML/', views.mainHTML),
+    # path(r'testHTML/<groupName>/', views.testHTML),
+    # path(r'testHTML/', views.Airflow_ProjectManager_HTML),
 
     # ======================
     # ======= v1 API =======

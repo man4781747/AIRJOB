@@ -17,8 +17,11 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
 import os
+from AirFlowUploadWeb import views
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('AirFlowUploadWeb/', include('AirFlowUploadWeb.urls')),
+    path(r'AIRJOB/<groupName>/', views.testHTML),
 ] 

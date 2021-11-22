@@ -15,6 +15,21 @@ import time
 
 S_airjobUrl = "http://88.248.13.77:8893/AirFlowUploadWeb/testHTML/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
 
+D_AIRJOB_Jupyter_metadata = {
+    '9h000': {
+        'url':'http://35.194.167.48:5567',
+        'token':'password',
+    },
+    '9h001': {
+        'url':'http://35.194.167.48:5567',
+        'token':'password',
+    },
+    '9h002': {
+        'url':'http://35.194.167.48:5567',
+        'token':'password',
+    },
+}
+
 def send_execute_request(code):
     msg_type = 'execute_request'
     content = { 'code' : code, 'silent':False }
@@ -67,6 +82,10 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     if S_dagID == '':
         raise AirflowFailException("無 dagID")
 
+    S_project = S_dagID.split('_')[0]
+    if D_AIRJOB_Jupyter_metadata.get(S_project, None) == None:
+        raise AirflowFailException("找不到project: {} 的設定資料，請通知工程組處理。".format(S_project))
+
     try:
         S_jupyterToken = tokenTransform.dectry(S_jupyterToken)
     except:
@@ -91,54 +110,14 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
 
     print('嘗試執行Jupyter檔案: {}'.format(S_jupyterNotebookUrl))
 
-    # try:
-    #     notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path').split('?')[0].split('#')[0]
-    #     base = Re_jupyterNotebookUrl.group('jupyter_url')
-    #     headers = {'Authorization': S_jupyterToken}
-    #     S_ip_port = base.split('//')[-1]
-    #     print('建立新kernel')
-    #     S_URL_NewKernels = base + '/api/kernels'+ "?token={}".format(S_jupyterToken)
-    #     response = requests.post(S_URL_NewKernels)
-    #     D_return = json.loads(response.text)
-    #     D_kernel = D_return
-    #     print("建立新kernel成功: {}".format(D_kernel['id']))
-    # except Exception as e:
-    #     print(e)
-    #     raise AirflowFailException("建立新kernel失敗，請聯絡工程組")
+    notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path').split('?')[0].split('#')[0]
+    S_userJupyterUrl = Re_jupyterNotebookUrl.group('jupyter_url')
 
-    try:
-        notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path').split('?')[0].split('#')[0]
-        base = Re_jupyterNotebookUrl.group('jupyter_url')
-        headers = {'Authorization': S_jupyterToken}
-        S_ip_port = base.split('//')[-1]
-        
-        url = base + '/api/sessions' + "?token={}".format(S_jupyterToken)
-        D_params = {
-            "path": notebook_path+"___{}".format(uuid.uuid1().hex),
-            "type":"notebook",
-            "name":"uuid_{}".format(uuid.uuid1().hex),
-            "kernel":{
-                "id":None,
-                "name":"python3"
-            },
-        }
-        params = json.dumps(D_params)
-        print('獲得session資訊')
-        response = requests.post(url, headers=headers, data=params.encode('utf-8'))
-        session = json.loads(response.text)
-        D_kernel = session["kernel"]
-        # print(session)
-        S_sessionsUuid = session['id']
-        print('建立新session成功: {}'.format(S_sessionsUuid))
-        print("獲得kernel成功: {}".format(D_kernel['id']))
-    except Exception as e:
-        print(e)
-        raise AirflowFailException("獲得kernel失敗，請聯絡工程組")
-    
+    #先在有開Spark UI的Jupyter內獲得檔案內容
     try:
         print("讀取notebook檔案，並獲取每個Cell裡的Code")
-        url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
-        response = requests.get(url,headers=headers)
+        url = S_userJupyterUrl + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
+        response = requests.get(url)
         file = json.loads(response.text)
         if file['type'] == "notebook":
             S_fileType = 'notebook'
@@ -153,17 +132,46 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     except Exception as e:
         print(e)
         raise AirflowFailException("獲得NoteBook內容失敗，請確認Token以及URL提供正確")
+
+    #準備與AIRJOB專用Jupyter連線
+    try:
+        print('準備與AIRJOB專用Jupyter連線')
+        D_AIRJOB_JupyterInfo = D_AIRJOB_Jupyter_metadata[S_project]
+        S_AIRJOB_JupyterRrl = D_AIRJOB_JupyterInfo['url'] + "/api/sessions?token={}".format(D_AIRJOB_JupyterInfo['token'])
+        S_AIRJOBJupyter_ip_port = D_AIRJOB_JupyterInfo['url'].split('//')[-1]
+        print(S_AIRJOB_JupyterRrl)
+        D_params = {
+            "path": notebook_path+"___{}".format(uuid.uuid1().hex),
+            "type":"notebook",
+            "name":"uuid_{}".format(uuid.uuid1().hex),
+            "kernel":{
+                "id":None,
+                "name":"python3"
+            },
+        }
+        params = json.dumps(D_params)
+        print('獲得session資訊')
+        response = requests.post(S_AIRJOB_JupyterRrl, data=params.encode('utf-8'))
+        session = json.loads(response.text)
+        D_kernel = session["kernel"]
+        S_sessionsUuid = session['id']
+        print('建立新session成功: {}'.format(S_sessionsUuid))
+        print("獲得kernel成功: {}".format(D_kernel['id']))
+    except Exception as e:
+        print(e)
+        raise AirflowFailException("獲得kernel失敗，請聯絡工程組")
+
+
+
     if S_fileType=='notebook':
         try:
             print("開始啟動 WebSocket channels")
-            S_ws_url = "ws://{}/api/kernels/".format(S_ip_port)+D_kernel["id"]+"/channels?"+"token={}".format(S_jupyterToken)
+            S_ws_url = "ws://{}/api/kernels/".format(S_AIRJOBJupyter_ip_port)+D_kernel["id"]+"/channels?"+"token={}".format(D_AIRJOB_JupyterInfo['token'])
             ws = create_connection(
-                S_ws_url, 
-                header=headers)
+                S_ws_url)
             B_hasFail = False    
 
             L_resultList = []
-
             # 嘗試處裡Jupyter API的錯位BUG
             print('嘗試與Jupyter溝通並檢查類型')
             msg_type = ''
@@ -279,13 +287,11 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             except:
                 pass
             raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
-        print('所有Code已執行完畢')
-        time.sleep(0.1)            
+        print('所有Code已執行完畢')          
         ws.close()
-        time.sleep(0.1)
         print('刪除kernel: {}'.format(D_kernel['id']))
-        S_URL_DelKernels = base + '/api/kernels/{}?token={}'.format(D_kernel['id'],S_jupyterToken)
-        response = requests.delete(S_URL_DelKernels,headers=headers)
+        S_URL_DelKernels = D_AIRJOB_JupyterInfo['url'] + '/api/kernels/{}?token={}'.format(D_kernel['id'],D_AIRJOB_JupyterInfo['token'])
+        response = requests.delete(S_URL_DelKernels)
         print(response)
         print('刪除kernel成功: {}'.format(D_kernel['id']))
         # print('刪除session: {}'.format(S_sessionsUuid))
@@ -298,24 +304,18 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             'content':file['content'],
         }
         print('更新Notebook')
-        url = base + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
-        headers["Content-Type"] =  "application/json"
-        response = requests.put(url,headers=headers,data=json.dumps(new))
+        url = S_userJupyterUrl + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
+        response = requests.put(url,data=json.dumps(new))
         if B_hasFail:
             raise AirflowFailException("Task Fail!")
         return B_hasFail
 
-
-
-
-
     elif S_fileType=='pyfile':
         try:
             print("開始啟動 WebSocket channels")
-            S_ws_url = "ws://{}/api/kernels/".format(S_ip_port)+D_kernel["id"]+"/channels?"+"token={}".format(S_jupyterToken)
+            S_ws_url = "ws://{}/api/kernels/".format(S_AIRJOBJupyter_ip_port)+D_kernel["id"]+"/channels?"+"token={}".format(D_AIRJOB_JupyterInfo['token'])
             ws = create_connection(
-                S_ws_url, 
-                header=headers)
+                S_ws_url)
             print("code:\n================= START =================\n{}\n=================  END  =================".format(code))
             ws.send(json.dumps(send_execute_request(code)))
             B_hasFail = False  
@@ -349,21 +349,13 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             except:
                 pass
         
-        print('所有Code已執行完畢')
-        time.sleep(0.1)            
+        print('所有Code已執行完畢')         
         ws.close()
-        time.sleep(0.1)
         print('刪除kernel: {}'.format(D_kernel['id']))
-        S_URL_DelKernels = base + '/api/kernels/{}?token={}'.format(D_kernel['id'],S_jupyterToken)
-        response = requests.delete(S_URL_DelKernels,headers=headers)
+        S_URL_DelKernels = D_AIRJOB_JupyterInfo['url'] + '/api/kernels/{}?token={}'.format(D_kernel['id'],D_AIRJOB_JupyterInfo['token'])
+        response = requests.delete(S_URL_DelKernels)
         print(response)
         print('刪除kernel成功: {}'.format(D_kernel['id']))
-        # print('刪除session: {}'.format(S_sessionsUuid))
-        # S_URL_DelSession = base + '/api/sessions/{}?token={}'.format(S_sessionsUuid,S_jupyterToken)
-        # response = requests.delete(S_URL_DelSession,headers=headers)
-        # print(response)
-        # print('刪除session成功: {}'.format(S_sessionsUuid))
-
         
         if B_hasFail:
             raise AirflowFailException("Task Fail!")
