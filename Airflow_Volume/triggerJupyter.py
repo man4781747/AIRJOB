@@ -127,7 +127,6 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         response = requests.post(url, headers=headers, data=params.encode('utf-8'))
         session = json.loads(response.text)
         D_kernel = session["kernel"]
-        # print(session)
         S_sessionsUuid = session['id']
         print('建立新session成功: {}'.format(S_sessionsUuid))
         print("獲得kernel成功: {}".format(D_kernel['id']))

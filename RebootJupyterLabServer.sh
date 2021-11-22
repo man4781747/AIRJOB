@@ -30,7 +30,7 @@ docker network create my-net
 
 echo "Try to reboot server..."
 docker run -tid --name $containerName -p $port_out:$port_in \
--v $jupyterFolder:/jupyterFolder \
+-v $jupyterFolder:/jupyterLabFolder \
 airjob_jupyter-lab:latest jupyter lab --port $port_in --ip 0.0.0.0 --NotebookApp.token=password --allow-root
 
 echo "Reboot server DONE"
