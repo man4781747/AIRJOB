@@ -21,7 +21,7 @@ from AirFlowUploadWeb import views
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls),
     path('AirFlowUploadWeb/', include('AirFlowUploadWeb.urls')),
     path(r'AIRJOB/<groupName>/', views.testHTML),
 ] 
