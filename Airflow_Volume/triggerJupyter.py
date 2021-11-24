@@ -74,6 +74,19 @@ def airjobOutputInfo(S_dagID):
     ]
     return L_returnList
 
+def DeleteKernel(S_kernelID, S_JuypterToken, S_JupyterURL):
+    print('準備刪除kernel: {}'.format(S_kernelID))
+    S_URL_DelKernels = S_JupyterURL + '/api/kernels/{}?token={}'.format(S_kernelID,S_JuypterToken)
+    for try_num in range(5):
+        response = requests.delete(S_URL_DelKernels)
+        print(response.status_code)
+        if response.status_code < 300:
+            print('刪除kernel成功: {}'.format(S_kernelID))
+            break
+        print('刪除kernel失敗，準備重試: {}'.format(try_num))
+    else:
+        print('刪除kernel: {} 失敗!!'.format(S_kernelID))
+
 def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     if S_jupyterNotebookUrl == '':
         raise AirflowFailException("無jupyterNotebookUrl")
@@ -137,7 +150,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     try:
         print('準備掃描AIRJOB專用Jupyter閒置的Kernels')
         D_AIRJOB_JupyterInfo = D_AIRJOB_Jupyter_metadata[S_project]
-        S_sessions_url = S_userJupyterUrl + "/api/sessions?token={}".format(S_jupyterToken)
+        S_sessions_url = D_AIRJOB_JupyterInfo['url'] + "/api/sessions?token={}".format(S_jupyterToken)
         response_Kernels = requests.get(S_sessions_url)
         L_Sessions = json.loads(response_Kernels.text)
         for D_sessionInfo in L_Sessions:
@@ -159,17 +172,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             if D_sessionInfo['kernel']['execution_state'] == 'starting':
                 print('發現啟動超過5分鐘還沒啟動完畢的kernel')
             S_kernel_id = D_sessionInfo['kernel']['id']
-            print('準備刪除kernel: {}'.format(S_kernel_id))
-            S_URL_DelKernels = D_AIRJOB_JupyterInfo['url'] + '/api/kernels/{}?token={}'.format(S_kernel_id,D_AIRJOB_JupyterInfo['token'])
-            for try_num in range(5):
-                response = requests.delete(S_URL_DelKernels)
-                print(response.status_code)
-                if response.status_code < 300:
-                    print('刪除kernel成功: {}'.format(S_kernel_id))
-                    break
-                print('刪除kernel失敗，準備重試: {}'.format(try_num))
-            else:
-                print('刪除kernel: {} 失敗!!'.format(S_kernel_id))
+            DeleteKernel(S_kernel_id, D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
         print('掃描閒置的Kernels完畢!')
     except Exception as e:
         print('掃描閒置的Kernels失敗! {}'.format(e))
@@ -209,8 +212,29 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             S_ws_url = "ws://{}/api/kernels/".format(S_AIRJOBJupyter_ip_port)+D_kernel["id"]+"/channels?"+"token={}".format(D_AIRJOB_JupyterInfo['token'])
             ws = create_connection(
                 S_ws_url)
-            B_hasFail = False    
+            print('檢查kernel是否準備完畢')
+            S_URL_CheckKernels = D_AIRJOB_JupyterInfo['url'] + '/api/kernels/{}?token={}'.format(D_kernel["id"],D_AIRJOB_JupyterInfo['token'])
+            for i in range(60):
+                response_checkKernels = requests.get(S_URL_CheckKernels)
+                D_checkKernels = json.loads(response_checkKernels.text)
+                if D_checkKernels['execution_state'] != 'starting':
+                    print('確認kernel啟動完畢')
+                    break
+                time.sleep(1)
+            else:
+                ws.close()
+                DeleteKernel(D_kernel['id'], D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
+                raise AirflowFailException("Jupyter Kernel無法啟動成功")
+        except Exception as e:
+            print(e)
+            try:
+                ws.close()
+            except:
+                pass
+            raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
 
+        B_hasFail = False   
+        try:
             L_resultList = []
             # 嘗試處裡Jupyter API的錯位BUG
             print('嘗試與Jupyter溝通並檢查類型')
@@ -336,23 +360,9 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
         print('所有Code已執行完畢')          
         ws.close()
-        print('準備刪除kernel: {}'.format(D_kernel['id']))
-        S_URL_DelKernels = D_AIRJOB_JupyterInfo['url'] + '/api/kernels/{}?token={}'.format(D_kernel['id'],D_AIRJOB_JupyterInfo['token'])
-        for try_num in range(5):
-            response = requests.delete(S_URL_DelKernels)
-            print(response.status_code)
-            if response.status_code < 300:
-                print('刪除kernel成功: {}'.format(D_kernel['id']))
-                break
-            print('刪除kernel失敗，準備重試: {}'.format(try_num))
-        else:
-            print('刪除kernel: {} 失敗!!'.format(D_kernel['id']))
 
-        # print('刪除session: {}'.format(S_sessionsUuid))
-        # S_URL_DelSession = base + '/api/sessions/{}?token={}'.format(S_sessionsUuid,S_jupyterToken)
-        # response = requests.delete(S_URL_DelSession)
-        # print(response)
-        # print('刪除session成功: {}'.format(S_sessionsUuid))
+        DeleteKernel(D_kernel['id'], D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
+
         new = {
             'type': "notebook",
             'content':file['content'],
@@ -370,7 +380,29 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             S_ws_url = "ws://{}/api/kernels/".format(S_AIRJOBJupyter_ip_port)+D_kernel["id"]+"/channels?"+"token={}".format(D_AIRJOB_JupyterInfo['token'])
             ws = create_connection(
                 S_ws_url)
+            print('檢查kernel是否準備完畢')
+            S_URL_CheckKernels = D_AIRJOB_JupyterInfo['url'] + '/api/kernels/{}?token={}'.format(D_kernel["id"],D_AIRJOB_JupyterInfo['token'])
+            for i in range(60):
+                response_checkKernels = requests.get(S_URL_CheckKernels)
+                D_checkKernels = json.loads(response_checkKernels.text)
+                if D_checkKernels['execution_state'] != 'starting':
+                    print('確認kernel啟動完畢')
+                    break
+                time.sleep(1)
+            else:
+                ws.close()
+                DeleteKernel(D_kernel['id'], D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
+                raise AirflowFailException("Jupyter Kernel無法啟動成功")
+        except Exception as e:
+            print(e)
+            try:
+                ws.close()
+            except:
+                pass
+            raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
 
+        B_hasFail = False   
+        try:
             ws.send(json.dumps(send_execute_request('print("WebSocket Check")')))
             I_Try = 0
             while True and I_Try<20:
@@ -398,7 +430,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
 
             print("code:\n================= START =================\n{}\n=================  END  =================".format(code))
             ws.send(json.dumps(send_execute_request(code)))
-            B_hasFail = False  
+              
             I_inextGet = 0     
             S_resultString = "\n執行結果:"
             while True:
@@ -431,17 +463,8 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         
         print('所有Code已執行完畢')         
         ws.close()
-        print('準備刪除kernel: {}'.format(D_kernel['id']))
-        S_URL_DelKernels = D_AIRJOB_JupyterInfo['url'] + '/api/kernels/{}?token={}'.format(D_kernel['id'],D_AIRJOB_JupyterInfo['token'])
-        for try_num in range(5):
-            response = requests.delete(S_URL_DelKernels)
-            print(response.status_code)
-            if response.status_code < 300:
-                print('刪除kernel成功: {}'.format(D_kernel['id']))
-                break
-            print('刪除kernel失敗，準備重試: {}'.format(try_num))
-        else:
-            print('刪除kernel: {} 失敗!!'.format(D_kernel['id']))
+
+        DeleteKernel(D_kernel['id'], D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
         
         if B_hasFail:
             raise AirflowFailException("Task Fail!")
