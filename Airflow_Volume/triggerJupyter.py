@@ -13,7 +13,7 @@ import tokenTransform
 import urllib.parse
 import time
 
-S_airjobUrl = "http://35.194.167.48:8000/AirFlowUploadWeb/testHTML/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
+S_airjobUrl = "http://35.194.167.48:8893/AIRJOB/{}/?Page=dagInfoView&dag_id={}&SheetChose=DAG_Infomation"
 
 D_AIRJOB_Jupyter_metadata = {
     '9h000': {
@@ -144,9 +144,6 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             if D_sessionInfo.get('name',"xxxxxxxx")[:5] != 'uuid_':
                 # 排除不是uuid_開頭的session
                 continue
-            if D_sessionInfo.get('kernel',{}).get('execution_state','no') != 'idle':
-                # 排除execution_state不是idle的kernel
-                continue
             try:
                 DT_last_activity = datetime.datetime.strptime(D_sessionInfo.get('last_activity',''),"%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(hours=8)
                 if DT_last_activity > (datetime.datetime.now() - datetime.timedelta(minutes=5)):
@@ -154,8 +151,13 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
                     continue
             except Exception as e:
                 print('無法判別 last_activity: {}'.format(e))
+            if D_sessionInfo.get('kernel',{}).get('execution_state','no') not in ['idle', 'starting']:
+                # 排除execution_state不是idle的kernel
+                continue
 
             print('找到沒關乾淨的kernel')
+            if D_sessionInfo['kernel']['execution_state'] == 'starting':
+                print('發現啟動超過5分鐘還沒啟動完畢的kernel')
             S_kernel_id = D_sessionInfo['kernel']['id']
             print('準備刪除kernel: {}'.format(S_kernel_id))
             S_URL_DelKernels = D_AIRJOB_JupyterInfo['url'] + '/api/kernels/{}?token={}'.format(S_kernel_id,D_AIRJOB_JupyterInfo['token'])
@@ -223,6 +225,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
                     break
                 I_Try += 1
             else:
+                ws.close()
                 raise AirflowFailException("與Jupyter WebSocket溝通失敗，請通知工程組排除問題")
             I_Try = 0 
             while True and I_Try<20:
@@ -232,6 +235,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
                     break
                 I_Try += 1
             else:
+                ws.close()
                 raise AirflowFailException("與Jupyter WebSocket溝通失敗，請通知工程組排除問題")
 
             print('Jupyter溝通成功')
@@ -251,6 +255,9 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
                     while True:
                         rsp = json.loads(ws.recv())
                         msg_type = rsp["msg_type"]
+                        # print('***********************************************************************')
+                        # print(rsp)
+                        # print('***********************************************************************')
                         if msg_type == "stream":
                             S_resultString += "\n{}".format(rsp["content"]["text"])
                             file['content']['cells'][L_c[1]]['outputs'].append(
@@ -343,7 +350,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
 
         # print('刪除session: {}'.format(S_sessionsUuid))
         # S_URL_DelSession = base + '/api/sessions/{}?token={}'.format(S_sessionsUuid,S_jupyterToken)
-        # response = requests.delete(S_URL_DelSession,headers=headers)
+        # response = requests.delete(S_URL_DelSession)
         # print(response)
         # print('刪除session成功: {}'.format(S_sessionsUuid))
         new = {
@@ -363,6 +370,32 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             S_ws_url = "ws://{}/api/kernels/".format(S_AIRJOBJupyter_ip_port)+D_kernel["id"]+"/channels?"+"token={}".format(D_AIRJOB_JupyterInfo['token'])
             ws = create_connection(
                 S_ws_url)
+
+            ws.send(json.dumps(send_execute_request('print("WebSocket Check")')))
+            I_Try = 0
+            while True and I_Try<20:
+                rsp = json.loads(ws.recv())
+                msg_type = rsp["msg_type"]
+                if msg_type == "stream" and "WebSocket Check" in rsp["content"]["text"]:
+                    break
+                I_Try += 1
+            else:
+                ws.close()
+                raise AirflowFailException("與Jupyter WebSocket溝通失敗，請通知工程組排除問題")
+            I_Try = 0 
+            while True and I_Try<20:
+                rsp = json.loads(ws.recv())
+                msg_type = rsp["msg_type"]
+                if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
+                    break
+                I_Try += 1
+            else:
+                ws.close()
+                raise AirflowFailException("與Jupyter WebSocket溝通失敗，請通知工程組排除問題")
+
+
+
+
             print("code:\n================= START =================\n{}\n=================  END  =================".format(code))
             ws.send(json.dumps(send_execute_request(code)))
             B_hasFail = False  
