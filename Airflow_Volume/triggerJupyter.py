@@ -113,7 +113,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     notebook_path = '/' + Re_jupyterNotebookUrl.group('notebook_path').split('?')[0].split('#')[0]
     S_userJupyterUrl = Re_jupyterNotebookUrl.group('jupyter_url')
 
-    #先在有開Spark UI的Jupyter內獲得檔案內容
+    #先在Jupyter內獲得檔案內容
     try:
         print("讀取notebook檔案，並獲取每個Cell裡的Code")
         url = S_userJupyterUrl + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
@@ -132,6 +132,45 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     except Exception as e:
         print(e)
         raise AirflowFailException("獲得NoteBook內容失敗，請確認Token以及URL提供正確")
+
+    #尋找name為uuid_開頭並Kernels狀態為idle而且last_activity大於5分鐘前的session，並關閉他們(主要是盡量清空之前關失敗的kernel)
+    try:
+        print('準備掃描AIRJOB專用Jupyter閒置的Kernels')
+        D_AIRJOB_JupyterInfo = D_AIRJOB_Jupyter_metadata[S_project]
+        S_sessions_url = S_userJupyterUrl + "/api/sessions?token={}".format(S_jupyterToken)
+        response_Kernels = requests.get(S_sessions_url)
+        L_Sessions = json.loads(response_Kernels.text)
+        for D_sessionInfo in L_Sessions:
+            if D_sessionInfo.get('name',"xxxxxxxx")[:5] != 'uuid_':
+                # 排除不是uuid_開頭的session
+                continue
+            if D_sessionInfo.get('kernel',{}).get('execution_state','no') != 'idle':
+                # 排除execution_state不是idle的kernel
+                continue
+            try:
+                DT_last_activity = datetime.datetime.strptime(D_sessionInfo.get('last_activity',''),"%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(hours=8)
+                if DT_last_activity > (datetime.datetime.now() - datetime.timedelta(minutes=5)):
+                    # 排除last_activity大於5分鐘前的kernel
+                    continue
+            except Exception as e:
+                print('無法判別 last_activity: {}'.format(e))
+
+            print('找到沒關乾淨的kernel')
+            S_kernel_id = D_sessionInfo['kernel']['id']
+            print('準備刪除kernel: {}'.format(S_kernel_id))
+            S_URL_DelKernels = D_AIRJOB_JupyterInfo['url'] + '/api/kernels/{}?token={}'.format(S_kernel_id,D_AIRJOB_JupyterInfo['token'])
+            for try_num in range(5):
+                response = requests.delete(S_URL_DelKernels)
+                print(response.status_code)
+                if response.status_code < 300:
+                    print('刪除kernel成功: {}'.format(S_kernel_id))
+                    break
+                print('刪除kernel失敗，準備重試: {}'.format(try_num))
+            else:
+                print('刪除kernel: {} 失敗!!'.format(S_kernel_id))
+        print('掃描閒置的Kernels完畢!')
+    except Exception as e:
+        print('掃描閒置的Kernels失敗! {}'.format(e))
 
     #準備與AIRJOB專用Jupyter連線
     try:
@@ -174,34 +213,37 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             # 嘗試處裡Jupyter API的錯位BUG
             print('嘗試與Jupyter溝通並檢查類型')
             msg_type = ''
-            ws.send(json.dumps(send_execute_request(code[0][0])))
-            rsp = json.loads(ws.recv())
-            msg_type = rsp["msg_type"]
-            I_shift = 0
-            if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
-                print('會位移的類型，嘗試修正')
-                code = code + [['',-1]]
-                ws.send(json.dumps(send_execute_request(code[1][0])))
-                I_shift = 1
+
+            ws.send(json.dumps(send_execute_request('print("WebSocket Check")')))
+            I_Try = 0
+            while True and I_Try<20:
+                rsp = json.loads(ws.recv())
+                msg_type = rsp["msg_type"]
+                if msg_type == "stream" and "WebSocket Check" in rsp["content"]["text"]:
+                    break
+                I_Try += 1
             else:
-                print('不會位移的類型')
-                while True:
-                    rsp = json.loads(ws.recv())
-                    msg_type = rsp["msg_type"]
-                    if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
-                        break
+                raise AirflowFailException("與Jupyter WebSocket溝通失敗，請通知工程組排除問題")
+            I_Try = 0 
+            while True and I_Try<20:
+                rsp = json.loads(ws.recv())
+                msg_type = rsp["msg_type"]
+                if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
+                    break
+                I_Try += 1
+            else:
+                raise AirflowFailException("與Jupyter WebSocket溝通失敗，請通知工程組排除問題")
+
+            print('Jupyter溝通成功')
             print('開始執行程式')
             for I_inedx,L_c in enumerate(code):
-                if L_c[1] != -1:
-                    print(
-                        '\n執行第{}區塊的code:\n================= START =================\n{}\n=================  END  ================='.format(
-                        L_c[1]+1,
-                        L_c[0])
-                    )
-                else:
-                    break
-                if I_shift != 1 or I_inedx not in [1,0] :
-                    ws.send(json.dumps(send_execute_request(L_c[0])))
+                print(
+                    '\n執行第{}區塊的code:\n================= START =================\n{}\n=================  END  ================='.format(
+                    L_c[1]+1,
+                    L_c[0])
+                )
+
+                ws.send(json.dumps(send_execute_request(L_c[0])))
                 try:
                     msg_type = ''
                     S_resultString = "\n執行結果:"
@@ -277,8 +319,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
                                     "metadata": {},
                                 },
                             )
-                            if L_c[1] != -1:
-                                print(S_resultString)
+                            print(S_resultString)
                             break
                             
                 except:
@@ -291,11 +332,18 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
         print('所有Code已執行完畢')          
         ws.close()
-        print('刪除kernel: {}'.format(D_kernel['id']))
+        print('準備刪除kernel: {}'.format(D_kernel['id']))
         S_URL_DelKernels = D_AIRJOB_JupyterInfo['url'] + '/api/kernels/{}?token={}'.format(D_kernel['id'],D_AIRJOB_JupyterInfo['token'])
-        response = requests.delete(S_URL_DelKernels)
-        print(response)
-        print('刪除kernel成功: {}'.format(D_kernel['id']))
+        for try_num in range(5):
+            response = requests.delete(S_URL_DelKernels)
+            print(response.status_code)
+            if response.status_code < 300:
+                print('刪除kernel成功: {}'.format(D_kernel['id']))
+                break
+            print('刪除kernel失敗，準備重試: {}'.format(try_num))
+        else:
+            print('刪除kernel: {} 失敗!!'.format(D_kernel['id']))
+
         # print('刪除session: {}'.format(S_sessionsUuid))
         # S_URL_DelSession = base + '/api/sessions/{}?token={}'.format(S_sessionsUuid,S_jupyterToken)
         # response = requests.delete(S_URL_DelSession,headers=headers)
@@ -353,11 +401,17 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         
         print('所有Code已執行完畢')         
         ws.close()
-        print('刪除kernel: {}'.format(D_kernel['id']))
+        print('準備刪除kernel: {}'.format(D_kernel['id']))
         S_URL_DelKernels = D_AIRJOB_JupyterInfo['url'] + '/api/kernels/{}?token={}'.format(D_kernel['id'],D_AIRJOB_JupyterInfo['token'])
-        response = requests.delete(S_URL_DelKernels)
-        print(response)
-        print('刪除kernel成功: {}'.format(D_kernel['id']))
+        for try_num in range(5):
+            response = requests.delete(S_URL_DelKernels)
+            print(response.status_code)
+            if response.status_code < 300:
+                print('刪除kernel成功: {}'.format(D_kernel['id']))
+                break
+            print('刪除kernel失敗，準備重試: {}'.format(try_num))
+        else:
+            print('刪除kernel: {} 失敗!!'.format(D_kernel['id']))
         
         if B_hasFail:
             raise AirflowFailException("Task Fail!")
