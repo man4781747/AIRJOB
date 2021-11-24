@@ -150,7 +150,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     try:
         print('準備掃描AIRJOB專用Jupyter閒置的Kernels')
         D_AIRJOB_JupyterInfo = D_AIRJOB_Jupyter_metadata[S_project]
-        S_sessions_url = D_AIRJOB_JupyterInfo['url'] + "/api/sessions?token={}".format(S_jupyterToken)
+        S_sessions_url = D_AIRJOB_JupyterInfo['url'] + "/api/sessions?token={}".format(D_AIRJOB_JupyterInfo['token'])
         response_Kernels = requests.get(S_sessions_url)
         L_Sessions = json.loads(response_Kernels.text)
         for D_sessionInfo in L_Sessions:
