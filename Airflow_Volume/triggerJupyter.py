@@ -217,18 +217,20 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             for i in range(60):
                 response_checkKernels = requests.get(S_URL_CheckKernels)
                 D_checkKernels = json.loads(response_checkKernels.text)
-                if D_checkKernels['execution_state'] != 'starting':
+                if D_checkKernels.get('execution_state', 'starting') != 'starting':
                     print('確認kernel啟動完畢')
                     break
                 time.sleep(1)
             else:
                 ws.close()
+                print(D_checkKernels)
                 DeleteKernel(D_kernel['id'], D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
                 raise AirflowFailException("Jupyter Kernel無法啟動成功")
         except Exception as e:
             print(e)
             try:
                 ws.close()
+                print(D_checkKernels)
             except:
                 pass
             raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
