@@ -1100,7 +1100,8 @@ START = DummyOperator(
 
 END = DummyOperator(
     task_id='END',
-    dag=dag
+    dag=dag,
+    trigger_rule=TriggerRule.ALL_SUCCESS,
 )
 
 '''
@@ -1123,6 +1124,7 @@ END = DummyOperator(
                 ) + "}"
                 S_pyContent += S_taskStr.format(task_id=D_taskInfo["tesk_id"],op_kwargs=op_kwargs)
             L_taskList.append("Task_"+D_taskInfo["tesk_id"])
-        S_pyContent += ' >> '.join(['START'] + L_taskList + ['END'])
-
+        S_pyContent += ' >> '.join(['START'] + L_taskList)
+        for S_taskChose in L_taskList:
+            S_pyContent += "\n{} >> END".format(S_taskChose)
         f.write(S_pyContent)
