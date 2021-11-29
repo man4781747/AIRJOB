@@ -241,7 +241,7 @@
 								margin: 0;
 								margin-bottom: 20px;'
 					>
-						數據經營部 ({{projectName}})
+						{{projectName_ch}}
 					</p>
 					<button class='btn avtive-btn' @click='openAddNewDAGEditer()' style="
 						width: 100%;
@@ -511,7 +511,7 @@
 							<label class='col-form-label'>排程時間設定</label>
 							<div class='col-sm-10'>
 								<p class='overflow-font'>{{cronReadStringGet}}</p>
-								<label class='overflow-font' v-show='ScheduleSettingTypeChose_Date == "One time"' style="margin: 0px;font-size: .5rem;white-space: nowrap !important;;">
+								<label class='overflow-font' v-show='ScheduleSettingTypeChose_Date == "One time"' style="margin: 0px;white-space: nowrap !important;;">
 									# 注意!在此時間到達之前，就算手動觸發執行排程也不會執行!
 								</label>
 								<div>
