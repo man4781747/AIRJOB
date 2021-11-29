@@ -17,6 +17,18 @@ var VueSetting_dagListViewer = {
 			this.filterChanged()
 			return this.listFilterString
 		},
+		projectName_ch(){
+			D_metadata = {
+				'9h000': '數據經營部',
+				'9h001': '數據經營部 (客戶智能科)',
+				'9h002': '數據經營部 (商業智能科)',
+			}
+			if (D_metadata[this.projectName] != undefined){
+				return D_metadata[this.projectName]
+			}
+			return this.projectName
+		},
+		
 	},
   
 	methods: {
