@@ -43,9 +43,6 @@ Vue.component("file-manager-tree", {
 	},
 	created: function() { 
 	},
-
-
-
 })
 
 
@@ -70,15 +67,25 @@ var VueSetting_dagInfoView = {
 
 		dagTaskSelecterOpen: false,
 
-		dagRunHistoryChose: null,
-		dagRunHistoryTaskIdChose: {},
+		dagRunHistoryChose: {},
+		dagRunHistoryTaskIndexChose: null,
 		dagRunHistoryLogContentChose: -1,
 		logDataRequestNum: '',
+		dagRunIDOpen: '',
 
 		deleteDAGCheckWindowShow: false,
 	},
   
 	computed: {
+		dagRunHistoryTaskIdChose(){
+			try{
+				if (this.dagRunHistoryChose[this.dagRunHistoryTaskIndexChose] != undefined){
+					return this.dagRunHistoryChose[this.dagRunHistoryTaskIndexChose]
+				}
+				return {}
+			}
+			catch{return {}}
+		},
 		getChosedFiles(){
 			if (this.folderChoseItem['files'] == undefined){
 				return []
@@ -125,13 +132,17 @@ var VueSetting_dagInfoView = {
 			this.updateUrlParas()
 		},
 
-		clickDAGRunIDRow(runsInfo){
-			var runsInfo = runsInfo
+		clickDAGRunIDRow(dag_run_id){
+			var dag_run_id = dag_run_id
+
+			this.urlParas['dag_run_id'] = dag_run_id
+			this.updateUrlParas()
+
 			this.dagRunHistoryStatus = 'Update'
 			var uuid_this_requests = _uuid()
 			this.logDataRequestNum = uuid_this_requests
 
-			uploadFetch = fetch('/AirFlowUploadWeb/API/v1/GetDAGRunLogByRunID/'+this.DAGDetailOpen+'/'+runsInfo.dag_run_id+'/', {
+			uploadFetch = fetch('/AirFlowUploadWeb/API/v1/GetDAGRunLogByRunID/'+this.DAGDetailOpen+'/'+dag_run_id+'/', {
 			}).then(function(response) {
 				return response.json();
 			})
@@ -139,25 +150,91 @@ var VueSetting_dagInfoView = {
 				// console.log(myJson);
 				// console.log(uuid_this_requests);
 				if (VueSetting.logDataRequestNum == uuid_this_requests){
+					// Vue.set(
+					// 	VueSetting.DAGList[VueSetting.DAGDetailOpen].dagRuns.total[dag_run_id],
+					// 	'Logs',
+					// 	myJson['result']['task_instances']
+					// )
+					VueSetting.dagRunHistoryStatus = 'Open'
+					VueSetting.dagRunHistoryTaskIndexChose = null
+					VueSetting.dagRunHistoryLogContentChose = 0,
+					VueSetting.dagRunIDOpen = dag_run_id
+					VueSetting.dagRunHistoryChose = myJson['result']['task_instances']
+					for (D_runInfoChose of myJson['result']['task_instances']){
+						if (D_runInfoChose.state == undefined){
+							console.log('持續更新 : '+dag_run_id)
+							VueSetting.autoUploadDAGRunInfo(dag_run_id)
+							break
+						}
+					}
+
+				}
+			})
+		},
+
+		uploadDAGRunInfo(dag_run_id){
+			var dag_run_id = dag_run_id
+			var uuid_this_requests = _uuid()
+			this.logDataRequestNum = uuid_this_requests
+
+			uploadFetch = fetch('/AirFlowUploadWeb/API/v1/GetDAGRunLogByRunID/'+this.DAGDetailOpen+'/'+dag_run_id+'/', {
+			}).then(function(response) {
+				return response.json();
+			})
+			.then(function(myJson) {
+				if (VueSetting.dagRunIDOpen == dag_run_id){
 					Vue.set(
-						runsInfo,
+						VueSetting.DAGList[VueSetting.DAGDetailOpen].dagRuns.total[dag_run_id],
 						'Logs',
 						myJson['result']['task_instances']
 					)
-					VueSetting.dagRunHistoryStatus = 'Open'
-					VueSetting.dagRunHistoryTaskIdChose = {}
-					VueSetting.dagRunHistoryLogContentChose = 0,
 					VueSetting.dagRunHistoryChose = myJson['result']['task_instances']
+					for (D_runInfoChose of myJson['result']['task_instances']){
+						if (D_runInfoChose.state == undefined){
+							console.log('持續更新 : '+dag_run_id)
+							VueSetting.autoUploadDAGRunInfo(dag_run_id)
+							break
+						}
+					}
 				}
+			});
+		},
+
+		autoUploadDAGRunInfo(dag_run_id){
+			var dag_run_id = dag_run_id
+			uploadFetch = fetch('/AirFlowUploadWeb/API/v1/GetDAGRunLogByRunID/'+this.DAGDetailOpen+'/'+dag_run_id+'/', {
+			}).then(function(response) {
+				return response.json();
+			})
+			.then(function(myJson) {
+				if (VueSetting.dagRunIDOpen == dag_run_id){
+					Vue.set(
+						VueSetting.DAGList[VueSetting.DAGDetailOpen].dagRuns.total[dag_run_id],
+						'Logs',
+						myJson['result']['task_instances']
+					)
+					VueSetting.dagRunHistoryChose = myJson['result']['task_instances']
+					for (D_runInfoChose of myJson['result']['task_instances']){
+						if (D_runInfoChose.state == undefined){
+							setTimeout(function() {
+								console.log('持續更新 : '+dag_run_id)
+								VueSetting.autoUploadDAGRunInfo(dag_run_id)
+							}, 1000);
+							break
+						}
+					}
+				}
+				else{console.log('停止更新 : '+dag_run_id)}
 			});
 		},
 
 		closeDagLogWindow(){
 			this.dagRunHistoryStatus = 'Close'
-			this.dagRunHistoryTaskIdChose = {}
+			this.dagRunHistoryTaskIndexChose = null
 			this.dagRunHistoryLogContentChose = 0,
 			this.dagRunHistoryChose = {}
 			this.logDataRequestNum = ''
+			this.dagRunIDOpen = ''
 		},
 
 		closeDagDetailWindow(){
@@ -245,9 +322,18 @@ var VueSetting_dagInfoView = {
 				// console.log(myJson)
 				if (myJson['DAG_Runs'] != undefined){
 					let DAG_RunsList = {
-						'total' : myJson['DAG_Runs']['dag_runs'],
+						'total' : {},
 						'groups' : {}
 					}
+					for (D_runInfo of myJson['DAG_Runs']['dag_runs']){
+						DAG_RunsList['total'][D_runInfo.dag_run_id] = D_runInfo
+					}
+
+
+					// let DAG_RunsList = {
+					// 	'total' : myJson['DAG_Runs']['dag_runs'],
+					// 	'groups' : {}
+					// }
 					VueSetting.DAGList[S_dagID]['updateRunsList'] = false
 					Vue.set(
 						VueSetting.DAGList[S_dagID],
@@ -360,8 +446,8 @@ var VueSetting_dagInfoView = {
 			})
 		},
 
-		clickTaskIdOption(logItem){
-			this.dagRunHistoryTaskIdChose = logItem
+		clickTaskIdOption(index){
+			this.dagRunHistoryTaskIndexChose = index
 			this.dagRunHistoryLogContentChose = 0
 		},
 
