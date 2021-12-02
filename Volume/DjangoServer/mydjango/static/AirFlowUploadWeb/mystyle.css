@@ -1,7 +1,16 @@
+:root {
+  --cl-title: #17a2b8;
+  --cl-red: #dc3545;
+  --cl-blue: #4597ff;
+  --cl-green: #28a745;
+  --cl-yellow: #f0b500;
+  --cl-background: #f4f6f9;
+}
+
 body{
 	font-family: 'Roboto', sans-serif;
 	/* font-size: 20px; */
-	background-color: #f4f6f9;
+	background-color: var(--cl-background);
     margin: 0;
 }
 
@@ -692,7 +701,7 @@ body{
 .btn-dark:hover {
     background-color: #374253;
     border-color: #565f6d;
-    color: #f4f6f996;
+    color: #f4f6f9;
 }
 
 .btn-right {
@@ -2025,7 +2034,8 @@ textarea:focus-visible {
 
 .log-chose-list label {
     display: inline-block;
-    width: 3rem;
+    /* width: 3rem; */
+    padding: 0 .5rem;
     height: 3rem;
     font-size: 1.5rem;
     background-color: #d9d9d9;
@@ -2084,7 +2094,7 @@ textarea:focus-visible {
 }
 
 .task-select-option {
-    display: block;
+    display: flex;
     width: 100%;
     padding: .25rem 1rem;
     clear: both;
@@ -2094,6 +2104,7 @@ textarea:focus-visible {
     white-space: nowrap;
     background-color: transparent;
     border: 0;
+    align-items: center;
 }
 
 
@@ -2797,4 +2808,13 @@ textarea:focus-visible {
 .welcome-icon svg {
     width: 15vw;
     height: 15vw;
+}
+
+.state-icon {
+    padding:.25rem;
+    border-radius: 0.25rem;
+}
+
+.task-select-option label{
+  margin-left: .5rem;
 }

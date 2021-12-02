@@ -227,10 +227,12 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
                 DeleteKernel(D_kernel['id'], D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
                 raise AirflowFailException("Jupyter Kernel無法啟動成功")
         except Exception as e:
+            print('=== 錯誤訊息 ===')
             print(e)
+            print('===============')
             try:
                 ws.close()
-                print(D_checkKernels)
+                # print(D_checkKernels)
             except:
                 pass
             raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
@@ -355,6 +357,9 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
                 except:
                     traceback.print_exc()
         except Exception as e:
+            print('=== 錯誤訊息 ===')
+            print(e)
+            print('===============')
             try:
                 ws.close()
             except:

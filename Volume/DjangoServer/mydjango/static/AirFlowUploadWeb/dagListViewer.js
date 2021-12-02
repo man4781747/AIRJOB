@@ -9,7 +9,7 @@ var VueSetting_dagListViewer = {
 	computed: {
 		projectName(){
 			projectName = location.pathname.match(
-				/\/AirFlowUploadWeb\/testHTML\/(\S*)\//
+				/\/AIRJOB\/(\S*)\//
 			)[1]
 			return projectName
 		},
@@ -17,6 +17,18 @@ var VueSetting_dagListViewer = {
 			this.filterChanged()
 			return this.listFilterString
 		},
+		projectName_ch(){
+			D_metadata = {
+				'9h000': '數據經營部',
+				'9h001': '數據經營部 (客戶智能科)',
+				'9h002': '數據經營部 (商業智能科)',
+			}
+			if (D_metadata[this.projectName] != undefined){
+				return D_metadata[this.projectName]
+			}
+			return this.projectName
+		},
+		
 	},
   
 	methods: {
@@ -75,17 +87,15 @@ var VueSetting_dagListViewer = {
 		
 		updateDAGRunsStatisticsInfoByDagID(S_dagID){
 			let params = new FormData();
+			var S_dagID = S_dagID
 			if (this.DAGList[S_dagID]['updateRunsStatistics'] == true){
 				return null
 			}
-
-
 			Vue.set(
 				this.DAGList[S_dagID],
 				'updateRunsStatistics',
 				true
 			)
-
 			params.append("DAG_ID", S_dagID)
 			fetch("/AirFlowUploadWeb/GetDAGRunsStatistics/", {
 				method: 'POST',
@@ -110,14 +120,38 @@ var VueSetting_dagListViewer = {
 					'LastRun',
 					myJson['LastRun']
 				)
+				
+				if (VueSetting.NowPage=="dagListViewer" &
+					VueSetting.DAGList[S_dagID].is_paused == false &
+					new Set(['queued','scheduled','running']).has(myJson['LastRun'].Result.state)
+				){
+					setTimeout(function() {
+						console.log('持續更新Last Run : '+S_dagID)
+						VueSetting.updateDAGRunsStatisticsInfoByDagID(S_dagID)
+					}, 2000);
+				}
+
+
 			})
 		},
 
 		DAGInfoViewOpen(dag_id){
-			this.urlParas = {
+			newParas = {
 				'Page': "dagInfoView",
 				'dag_id': dag_id,
+				'SheetChose': this.urlParas['SheetChose']
 			}
+
+			if (['DAG_Infomation','Runs_history'].indexOf(this.urlParas['SheetChose'])==-1){
+				newParas['SheetChose'] = 'DAG_Infomation'
+			} else if (this.urlParas['SheetChose'] == 'Runs_history'){
+				if (this.urlParas['dag_run_id'] != undefined){
+					newParas['dag_run_id'] = this.urlParas['dag_run_id']
+				}
+			}
+
+			this.urlParas = newParas
+
 			this.updateUrlParas()
 			this.DAGDetailOpen = dag_id
 			this.loadExistDAGSettingInfo(dag_id)
@@ -126,6 +160,11 @@ var VueSetting_dagListViewer = {
 			this.getFileManagerInfoByDAGId(dag_id)
 			this.closeDagLogWindow()
 			this.NowPage="dagInfoView"
+			this.SheetChose=this.urlParas['SheetChose']
+			if (this.urlParas['dag_run_id'] != undefined){
+				this.clickDAGRunIDRow(this.urlParas['dag_run_id'])
+			}
+		
 		},
 
 		updateDAGPauseStatus(dag_id){
