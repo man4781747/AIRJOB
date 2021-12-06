@@ -1644,7 +1644,7 @@
 									<template v-for="(runsInfo,runId, index) of DAGList[DAGDetailOpen].dagRuns.total">
 										<tr>
 											<td><a 
-												:href="airflowURL+'/graph?dag_id='+DAGDetailOpen+'&execution_date='+runsInfo.execution_date"
+												:href="(airflowURL+'/graph?dag_id='+DAGDetailOpen+'&execution_date='+runsInfo.execution_date+'&run_id='+runId+'&base_date='+runsInfo.execution_date).replaceAll('+','%2B')"
 												target='_blank'
 											>{{index+1}}</a></td>
 											<td>{{runsInfo.state}}</td>
