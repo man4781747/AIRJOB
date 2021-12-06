@@ -120,26 +120,31 @@ def connectWebSocket(S_Jupyter_ip_port, S_token, notebook_path):
 
     logging.info('嘗試與WebSocket channels溝通')
     ws.send(json.dumps(send_execute_request('print("WebSocket Check")')))
+    S_returnSrt=""
     for I_Try in range(20):
         rsp = json.loads(ws.recv())
+        S_returnSrt += '======\n{}\n======\n'.format(rsp)
         msg_type = rsp["msg_type"]
         if msg_type == "stream" and "WebSocket Check" in rsp["content"]["text"]:
             break
         I_Try += 1
     else:
         ws.close()
+        logging.error("回傳資訊:{}".format(S_returnSrt))
         raise AirflowFailException("與Jupyter WebSocket溝通失敗，請通知工程組排除問題")
     I_Try = 0 
+    S_returnSrt=""
     while True and I_Try<20:
         rsp = json.loads(ws.recv())
+        S_returnSrt += '======\n{}\n======\n'.format(rsp)
         msg_type = rsp["msg_type"]
         if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
             break
         I_Try += 1
     else:
         ws.close()
+        logging.error("回傳資訊:{}".format(S_returnSrt))
         raise AirflowFailException("與Jupyter WebSocket溝通失敗，請通知工程組排除問題")
-    
     logging.info('WebSocket 狀態正常 連線成功!')
     return (S_kernelId, ws)
 
