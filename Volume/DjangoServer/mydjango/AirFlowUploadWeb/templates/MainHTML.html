@@ -1346,9 +1346,15 @@
 								
 								<div class="table-card">
 									<div class="table-card-header color-g-b" style='display: flex;'>
-										<h3 class='table-card-title flex-80' style='display: flex !important;'>{{DAGDetailOpen}}</h3>
+										<h3 class='table-card-title' style='display: flex !important;'>{{DAGDetailOpen}}</h3>
 										<div style='display:flex;'>
-											<i class="far fas fa-play reload-btn btn btn-info" @click="clickTrigerDAGRunButton(DAGSettingInfo.DAGDetailInfo.DAG_ID)"></i>
+											<i class="fas fa-power-off reload-btn btn btn-info" style='position:relative;' @click.stop="clickDAGPauseStatusSwitch(DAGSettingInfo.DAGDetailInfo.DAG_ID, !DAGList[DAGSettingInfo.DAGDetailInfo.DAG_ID]['is_paused'])">
+												<i v-if="DAGList[DAGSettingInfo.DAGDetailInfo.DAG_ID]['is_paused']" class="fas fa-slash" style="position: absolute;left: 0;margin-left: 0.5rem;color: #fff;"></i>
+											</i>
+											<i v-if="DAGList[DAGSettingInfo.DAGDetailInfo.DAG_ID]['is_paused']" class="far fas fa-play reload-btn btn btn-info" style="position:relative;" @click="">
+												<i class="fas fa-times" style="position: absolute;left: 0;right: 0.75rem;color: #fff;top: 0;font-size: .5rem;"></i>
+											</i>
+											<i v-else class="far fas fa-play reload-btn btn btn-info" @click="clickTrigerDAGRunButton(DAGSettingInfo.DAGDetailInfo.DAG_ID)"></i>
 											<i class="far fa-trash-alt reload-btn btn btn-info" @click="clickDeleteDAGButton()"></i>
 											<a :href="airflowURL+'/tree?dag_id='+DAGDetailOpen" target="_blank"><i class="fas fa-globe reload-btn btn btn-info"></i></a>
 											<i class="far fa-edit reload-btn btn btn-info" @click="openDAGEditerWithDAGSettingInfo()"></i>
