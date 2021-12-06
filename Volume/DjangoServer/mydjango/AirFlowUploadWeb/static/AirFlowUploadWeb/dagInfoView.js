@@ -74,6 +74,7 @@ var VueSetting_dagInfoView = {
 		dagRunIDOpen: '',
 
 		deleteDAGCheckWindowShow: false,
+		dagRunHistoryChose_Starttime : '',
 	},
   
 	computed: {
@@ -159,6 +160,7 @@ var VueSetting_dagInfoView = {
 					VueSetting.dagRunHistoryTaskIndexChose = null
 					VueSetting.dagRunHistoryLogContentChose = 0,
 					VueSetting.dagRunIDOpen = dag_run_id
+					VueSetting.dagRunHistoryChose_Starttime = dag_run_id
 					VueSetting.dagRunHistoryChose = myJson['result']['task_instances']
 					for (D_runInfoChose of myJson['result']['task_instances']){
 						if (D_runInfoChose.state == undefined){
