@@ -152,7 +152,7 @@ def connectWebSocket(S_Jupyter_ip_port, S_token, notebook_path):
             DeleteKernel(S_kernelId, S_token, 'http://{}'.format(S_Jupyter_ip_port))
         except:
             pass
-        raise AirflowFailException("Jupyter Kernel無法啟動成功，若一直遇到這問題，請通知工程組")
+        raise ValueError("Jupyter Kernel無法啟動成功，若一直遇到這問題，請通知工程組")
 
 
 def DeleteKernel(S_kernelID, S_JuypterToken, S_JupyterURL):
@@ -195,19 +195,19 @@ def buildNewKernel(S_Jupyter_ip_port, S_token, notebook_path):
             logging.info('建立新Kernel失敗，訊息: \n{}'.format(str(e)))
             logging.info('準備重試: {}'.format(retry+1))
     else:
-        raise AirflowFailException("獲得kernel失敗，請聯絡工程組")
+        raise ValueError("獲得kernel失敗，請聯絡工程組")
 
 def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     if S_jupyterNotebookUrl == '':
-        raise AirflowFailException("無jupyterNotebookUrl")
+        raise ValueError("無jupyterNotebookUrl")
     if S_jupyterToken == '':
-        raise AirflowFailException("無jupyter Token")
+        raise ValueError("無jupyter Token")
     if S_dagID == '':
-        raise AirflowFailException("無 dagID")
+        raise ValueError("無 dagID")
 
     S_project = S_dagID.split('_')[0]
     if D_AIRJOB_Jupyter_metadata.get(S_project, None) == None:
-        raise AirflowFailException("找不到project: {} 的設定資料，請通知工程組處理。".format(S_project))
+        raise ValueError("找不到project: {} 的設定資料，請通知工程組處理。".format(S_project))
 
     try:
         S_jupyterToken = tokenTransform.dectry(S_jupyterToken)
@@ -229,7 +229,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     else:
         logging.info('URL Format 錯誤')
         logging.info(S_jupyterNotebookUrl)
-        raise AirflowFailException("URL 格式錯誤，找不到檔案")
+        raise ValueError("URL 格式錯誤，找不到檔案")
 
     logging.info('嘗試執行Jupyter檔案: {}'.format(S_jupyterNotebookUrl))
 
@@ -251,10 +251,10 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             logging.info('偵測為.py檔案')
             code = file['content']
         else:
-            raise AirflowFailException("未知格式檔案")
+            raise ValueError("未知格式檔案")
     except Exception as e:
         logging.info(e)
-        raise AirflowFailException("獲得NoteBook內容失敗，請確認Token以及URL提供正確")
+        raise ValueError("獲得NoteBook內容失敗，請確認Token以及URL提供正確")
 
     #尋找name為uuid_開頭並Kernels狀態為idle而且last_activity大於5分鐘前的session，並關閉他們(主要是盡量清空之前關失敗的kernel)
     try:
@@ -398,7 +398,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
                 ws.close()
             except:
                 pass
-            raise AirflowFailException("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
+            raise ValueError("與Jupyter WebSocket連線失敗，請確認Token以及URL提供正確")
         logging.info('所有Code已執行完畢')          
         ws.close()
 
@@ -412,7 +412,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         url = S_userJupyterUrl + '/api/contents' + notebook_path + "?token={}".format(S_jupyterToken)
         response = requests.put(url,data=json.dumps(new))
         if B_hasFail:
-            raise AirflowFailException("Task Fail!")
+            raise ValueError("Task Fail!")
         return B_hasFail
 
     elif S_fileType=='pyfile':
@@ -457,7 +457,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         DeleteKernel(S_kernelId, D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
         
         if B_hasFail:
-            raise AirflowFailException("Task Fail!")
+            raise ValueError("Task Fail!")
         return B_hasFail
 
     
