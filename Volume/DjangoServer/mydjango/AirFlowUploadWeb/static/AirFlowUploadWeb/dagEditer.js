@@ -1401,8 +1401,10 @@ END = DummyOperator(
 			if ((this.DebugMode_Editer & this.dag_settingDaebugFail) == false){
 				SettingInfo.append('DAG_ID', this.dagIdValue)
 				SettingInfo.append('Owner', this.ownerValues)
-				SettingInfo.append('Retries', this.retries)
-				SettingInfo.append('Retry_delay', this.retry_delay)
+				// SettingInfo.append('Retries', this.retries)
+				// SettingInfo.append('Retry_delay', this.retry_delay)
+				SettingInfo.append('Retries', 2)
+				SettingInfo.append('Retry_delay', 2)
 				SettingInfo.append('ScheduleDateType', this.ScheduleSettingTypeChose_Date)
 				SettingInfo.append('ScheduleTimeType', this.ScheduleSettingTypeChose_Time)
 				SettingInfo.append('ScheduleString', this.cronReadStringGet)
@@ -1765,7 +1767,7 @@ END = DummyOperator(
 		},
 		
 		SetEditer(D_SettingData){
-			
+			console.log(D_SettingData)
 			// DAGpyFileName : "",
 			this.dag_settingDaebugFail = true
 
@@ -1777,8 +1779,8 @@ END = DummyOperator(
 			// 基礎資訊
 
 			this.ownerValues = getByKey(D_SettingData,'Owner', '')
-			this.retries = getByKey(D_SettingData,'Retries', 1)
-			this.retry_delay = getByKey(D_SettingData,'Retry_delay', 0)
+			this.retries = getByKey(D_SettingData,'Retries', 2)
+			this.retry_delay = getByKey(D_SettingData,'Retry_delay', 3)
 			this.dagDescriptionValue = getByKey(D_SettingData,'Description', '請輸入註解')
 			
 			// dag id 相關
