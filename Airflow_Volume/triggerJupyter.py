@@ -76,7 +76,7 @@ def airjobOutputInfo(S_dagID):
     return L_returnList
 
 def connectWebSocket(S_Jupyter_ip_port, S_token, notebook_path):
-    for retry in range(3):
+    for retry in range(5):
         try:
             B_ok = False
             if retry != 0:
@@ -107,46 +107,53 @@ def connectWebSocket(S_Jupyter_ip_port, S_token, notebook_path):
                 logging.info('Kernel準備timeout!')
                 ws.close()
                 DeleteKernel(S_kernelId, S_token, 'http://{}'.format(S_Jupyter_ip_port))
-            if B_ok == True:
-                break
+            if B_ok == False:
+                continue
+            
+            logging.info('嘗試與WebSocket channels溝通')
+            ws.send(json.dumps(send_execute_request('print("WebSocket Check")')))
+            S_returnSrt=""
+            for I_Try in range(20):
+                rsp = json.loads(ws.recv())
+                S_returnSrt += '======\n{}\n======\n'.format(rsp)
+                msg_type = rsp["msg_type"]
+                if msg_type == "stream" and "WebSocket Check" in rsp["content"]["text"]:
+                    break
+                I_Try += 1
+            else:
+                ws.close()
+                DeleteKernel(S_kernelId, S_token, 'http://{}'.format(S_Jupyter_ip_port))
+                logging.error("與Jupyter WebSocket溝通失敗，回傳資訊:\n{}".format(S_returnSrt))
+                
+                continue
+            I_Try = 0 
+            S_returnSrt=""
+            while True and I_Try<20:
+                rsp = json.loads(ws.recv())
+                S_returnSrt += '======\n{}\n======\n'.format(rsp)
+                msg_type = rsp["msg_type"]
+                if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
+                    break
+                I_Try += 1
+            else:
+                ws.close()
+                DeleteKernel(S_kernelId, S_token, 'http://{}'.format(S_Jupyter_ip_port))
+                logging.error("與Jupyter WebSocket溝通失敗，回傳資訊:\n{}".format(S_returnSrt))
+                continue
+
+            logging.info('WebSocket 狀態正常 連線成功!')
+            return (S_kernelId, ws)
         except Exception as e:
             logging.error('遇到未預期的錯誤:{}'.format(str(e)))
+            continue
     else:
         try:
             ws.close()
+            DeleteKernel(S_kernelId, S_token, 'http://{}'.format(S_Jupyter_ip_port))
         except:
             pass
         raise AirflowFailException("Jupyter Kernel無法啟動成功，若一直遇到這問題，請通知工程組")
 
-    logging.info('嘗試與WebSocket channels溝通')
-    ws.send(json.dumps(send_execute_request('print("WebSocket Check")')))
-    S_returnSrt=""
-    for I_Try in range(20):
-        rsp = json.loads(ws.recv())
-        S_returnSrt += '======\n{}\n======\n'.format(rsp)
-        msg_type = rsp["msg_type"]
-        if msg_type == "stream" and "WebSocket Check" in rsp["content"]["text"]:
-            break
-        I_Try += 1
-    else:
-        ws.close()
-        logging.error("回傳資訊:{}".format(S_returnSrt))
-        raise AirflowFailException("與Jupyter WebSocket溝通失敗，請通知工程組排除問題")
-    I_Try = 0 
-    S_returnSrt=""
-    while True and I_Try<20:
-        rsp = json.loads(ws.recv())
-        S_returnSrt += '======\n{}\n======\n'.format(rsp)
-        msg_type = rsp["msg_type"]
-        if msg_type == "status" and rsp["content"]["execution_state"] == "idle":
-            break
-        I_Try += 1
-    else:
-        ws.close()
-        logging.error("回傳資訊:{}".format(S_returnSrt))
-        raise AirflowFailException("與Jupyter WebSocket溝通失敗，請通知工程組排除問題")
-    logging.info('WebSocket 狀態正常 連線成功!')
-    return (S_kernelId, ws)
 
 def DeleteKernel(S_kernelID, S_JuypterToken, S_JupyterURL):
     logging.info('準備刪除kernel: {}'.format(S_kernelID))
