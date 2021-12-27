@@ -24,9 +24,9 @@ import urllib.parse
 # Airflow 的URL、帳號、密碼請更改此處
 #########################################################################
 airflowConnecter = connectAirflow.airflowConnecter(
-    'TestAccount@gmail.com',
+    'TestAccount',
     'password',
-    'http://airflow-container:8080'
+    'http://35.194.167.48:8002'
 )
 
 S_dagsFolderPath = r'/airflowDagsFolder/dagBuilder'
@@ -168,6 +168,7 @@ def UploadDAGPythonFile(request):
 
 def GetDAGs_buildByDAGTags_v1(request, groupName):
     L_allDAGsList = airflowConnecter.getDAGs()
+    print(L_allDAGsList)
     Set_tags = set([])
     for DAGChose in L_allDAGsList:
         tagsList = DAGChose.get('tags', [])
