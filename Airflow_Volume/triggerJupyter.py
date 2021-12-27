@@ -286,7 +286,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             S_kernel_id = D_sessionInfo['kernel']['id']
 
             # DeleteKernel(S_kernel_id, D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
-            DeleteKernel(S_kernel_id, S_jupyterToken, S_sessions_url)
+            DeleteKernel(S_kernel_id, S_jupyterToken, S_userJupyterUrl)
         logging.info('掃描閒置的Kernels完畢!')
     except Exception as e:
         logging.info('掃描閒置的Kernels失敗! {}'.format(e))
@@ -407,7 +407,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         logging.info('所有Code已執行完畢')          
         ws.close()
 
-        DeleteKernel(S_kernelId, D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
+        DeleteKernel(S_kernelId, S_jupyterToken, S_userJupyterUrl)
 
         new = {
             'type': "notebook",
@@ -459,7 +459,7 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
         logging.info('所有Code已執行完畢')         
         ws.close()
 
-        DeleteKernel(S_kernelId, D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
+        DeleteKernel(S_kernelId, S_jupyterToken, S_userJupyterUrl)
         
         if B_hasFail:
             raise ValueError("Task Fail!")
