@@ -259,8 +259,10 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
     #尋找name為uuid_開頭並Kernels狀態為idle而且last_activity大於5分鐘前的session，並關閉他們(主要是盡量清空之前關失敗的kernel)
     try:
         logging.info('準備掃描AIRJOB專用Jupyter閒置的Kernels')
-        D_AIRJOB_JupyterInfo = D_AIRJOB_Jupyter_metadata[S_project]
-        S_sessions_url = D_AIRJOB_JupyterInfo['url'] + "/api/sessions?token={}".format(D_AIRJOB_JupyterInfo['token'])
+        # D_AIRJOB_JupyterInfo = D_AIRJOB_Jupyter_metadata[S_project]
+        # S_sessions_url = D_AIRJOB_JupyterInfo['url'] + "/api/sessions?token={}".format(D_AIRJOB_JupyterInfo['token'])
+        S_sessions_url = S_userJupyterUrl + "/api/sessions?token={}".format(S_jupyterToken)
+
         response_Kernels = requests.get(S_sessions_url)
         L_Sessions = json.loads(response_Kernels.text)
         for D_sessionInfo in L_Sessions:
@@ -282,18 +284,21 @@ def run(S_jupyterNotebookUrl='', S_jupyterToken='', S_dagID=''):
             if D_sessionInfo['kernel']['execution_state'] == 'starting':
                 logging.info('發現啟動超過5分鐘還沒啟動完畢的kernel')
             S_kernel_id = D_sessionInfo['kernel']['id']
-            DeleteKernel(S_kernel_id, D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
+
+            # DeleteKernel(S_kernel_id, D_AIRJOB_JupyterInfo['token'], D_AIRJOB_JupyterInfo['url'])
+            DeleteKernel(S_kernel_id, S_jupyterToken, S_sessions_url)
         logging.info('掃描閒置的Kernels完畢!')
     except Exception as e:
         logging.info('掃描閒置的Kernels失敗! {}'.format(e))
 
-    D_AIRJOB_JupyterInfo = D_AIRJOB_Jupyter_metadata[S_project]
-    S_AIRJOBJupyter_ip_port = D_AIRJOB_JupyterInfo['url'].split('//')[-1]
+    # D_AIRJOB_JupyterInfo = D_AIRJOB_Jupyter_metadata[S_project]
+    # S_AIRJOBJupyter_ip_port = D_AIRJOB_JupyterInfo['url'].split('//')[-1]
+
     #準備與AIRJOB專用Jupyter連線
 
     (S_kernelId, ws) = connectWebSocket(
-        S_AIRJOBJupyter_ip_port,
-        D_AIRJOB_JupyterInfo['token'],
+        S_userJupyterUrl.split("//")[-1],
+        S_jupyterToken,
         notebook_path
     )
 
